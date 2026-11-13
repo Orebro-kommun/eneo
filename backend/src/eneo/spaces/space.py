@@ -122,6 +122,17 @@ class Space:
     def _get_member_ids(self):
         return self.members.keys()
 
+    def changes_security_level(
+        self, classification: Optional[SecurityClassification]
+    ) -> bool:
+        """Whether moving to ``classification`` changes the level. Resending the
+        current classification, or naming another one at the same level, does not,
+        so it must not remove any link."""
+        current = self.security_classification
+        return (current.security_level if current else None) != (
+            classification.security_level if classification else None
+        )
+
     def is_personal(self):
         return self.user_id is not None
 
@@ -361,8 +372,9 @@ class Space:
                 raise BadRequestException(
                     "Can not change security classification of personal space"
                 )
+            changes_level = self.changes_security_level(security_classification)
             self.security_classification = security_classification
-            if self.security_classification is not None:
+            if changes_level and self.security_classification is not None:
                 self.completion_models = [
                     model
                     for model in self.completion_models

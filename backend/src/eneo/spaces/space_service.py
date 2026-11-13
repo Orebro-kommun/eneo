@@ -519,6 +519,9 @@ class SpaceService:
                 else space.security_classification,
             )
 
+        level_changed = is_provided(
+            security_classification
+        ) and space.changes_security_level(space_security_classification)
         space.update(
             name=name,
             description=description,
@@ -555,7 +558,7 @@ class SpaceService:
                 else NOT_PROVIDED,
                 minimum_security_level=(
                     space.security_classification.security_level
-                    if classification_changed
+                    if level_changed
                     and space.security_classification
                     and space.security_classification.security_enabled
                     else None
