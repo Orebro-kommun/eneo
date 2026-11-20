@@ -47,6 +47,9 @@ from eneo.redis.rate_limit import (
     raise_rate_limited,
 )
 from eneo.roles.permissions import Permission
+from eneo.security_classifications.domain.effective_level import (
+    effective_security_level,
+)
 from eneo.server.dependencies.container import get_container
 from eneo.server.exception_handlers import has_registered_handler
 from eneo.server.protocol import responses
@@ -58,6 +61,7 @@ from eneo.users.password import (
 )
 from eneo.users.password_lifecycle import PASSWORD_AUTH_METHOD, password_status_for
 from eneo.users.user import (
+    EffectiveSecurityLevelPublic,
     EneoPasswordChangeCapabilityPublic,
     ExternalPasswordChangeCapabilityPublic,
     PasswordChangeRequest,
@@ -481,6 +485,9 @@ async def get_currently_authenticated_user(
         truncated_api_key=truncated_key,
         password_change=password_change,
         password_status=password_status_for(current_user),
+        effective_security_level=EffectiveSecurityLevelPublic.model_validate(
+            effective_security_level(current_user)
+        ),
     )
 
 

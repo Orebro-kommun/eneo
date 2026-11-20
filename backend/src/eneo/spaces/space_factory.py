@@ -20,6 +20,7 @@ from eneo.integration.domain.entities.integration_knowledge import (
     IntegrationKnowledge,
 )
 from eneo.main.logging import get_logger
+from eneo.security_classifications.domain.effective_level import meets_security_floor
 from eneo.security_classifications.domain.entities.security_classification import (
     SecurityClassification,
 )
@@ -305,6 +306,7 @@ class SpaceFactory:
         integration_knowledge_in_db: Iterable["IntegrationKnowledgeDBModel"]
         | None = None,
         group_user_counts: Mapping[UUID, int] | None = None,
+        floor: SecurityClassification | None = None,
     ) -> Space:
         group_user_counts = group_user_counts or {}
         collections_in_db = list(collections_in_db or [])
@@ -342,12 +344,28 @@ class SpaceFactory:
             if not embedding_model.is_deprecated
         ]
 
-        # Personal spaces have all models enabled
+        # Personal spaces have all models enabled, down to the owner's floor
         if space_in_db.user_id is not None:
-            space_completion_models = non_deprecated_completion_models
-            space_transcription_models = non_deprecated_transcription_models
-            space_embedding_models = non_deprecated_embedding_models
-            space_mcp_servers = mcp_servers
+            space_completion_models = [
+                model
+                for model in non_deprecated_completion_models
+                if meets_security_floor(floor, model.security_classification)
+            ]
+            space_transcription_models = [
+                model
+                for model in non_deprecated_transcription_models
+                if meets_security_floor(floor, model.security_classification)
+            ]
+            space_embedding_models = [
+                model
+                for model in non_deprecated_embedding_models
+                if meets_security_floor(floor, model.security_classification)
+            ]
+            space_mcp_servers = [
+                server
+                for server in mcp_servers
+                if meets_security_floor(floor, server.effective_security_classification)
+            ]
         else:
             space_completion_models = [
                 completion_model
@@ -604,6 +622,8 @@ class SpaceFactory:
             if security_classification is not None
             else None
         )
+        if space_in_db.user_id is not None:
+            space_security_classification = floor
 
         return Space(
             created_at=space_in_db.created_at,

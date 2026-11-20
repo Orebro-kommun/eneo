@@ -6507,6 +6507,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/security-classifications/default-user-level/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set Default User Classification
+     * @description Set the security classification users work at by default. Send null to clear it.
+     */
+    put: operations["set_default_user_classification_api_v1_security_classifications_default_user_level__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/audit/config": {
     parameters: {
       query?: never;
@@ -14554,6 +14574,16 @@ export interface components {
        */
       is_help_assistant?: boolean;
     };
+    /** DefaultUserClassificationRequest */
+    DefaultUserClassificationRequest: {
+      /** @description The classification to use as default, or null to clear it */
+      security_classification: components["schemas"]["ModelId"] | null;
+    };
+    /** DefaultUserClassificationResponse */
+    DefaultUserClassificationResponse: {
+      /** Default User Security Classification Id */
+      default_user_security_classification_id: string | null;
+    };
     /**
      * DeleteCredentialResponse
      * @description Response model for deleting tenant API credentials.
@@ -14895,6 +14925,21 @@ export interface components {
       default_reasoning_effort: string | null;
       /** Reasoning Effort User Configurable */
       reasoning_effort_user_configurable: boolean;
+    };
+    /**
+     * EffectiveSecurityLevelPublic
+     * @description The security classification the user works at and where it comes from.
+     */
+    EffectiveSecurityLevelPublic: {
+      /** Security Classification Id */
+      security_classification_id: string | null;
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "group" | "default" | "none";
+      /** User Group Id */
+      user_group_id?: string | null;
     };
     /** EmbeddingModelCreate */
     EmbeddingModelCreate: {
@@ -21597,6 +21642,8 @@ export interface components {
     SecurityClassificationResponse: {
       /** Security Enabled */
       security_enabled: boolean;
+      /** Default User Security Classification Id */
+      default_user_security_classification_id?: string | null;
       /** Security Classifications */
       security_classifications: components["schemas"]["SecurityClassificationPublic"][];
     };
@@ -24844,6 +24891,8 @@ export interface components {
       show_model_pricing?: boolean;
       /** Default Role Id */
       default_role_id?: string | null;
+      /** Default User Security Classification Id */
+      default_user_security_classification_id?: string | null;
       /**
        * Modules
        * @default []
@@ -25677,6 +25726,7 @@ export interface components {
       truncated_api_key?: string | null;
       /** Quota Limit */
       quota_limit?: number | null;
+      effective_security_level: components["schemas"]["EffectiveSecurityLevelPublic"];
       /** Roles */
       roles: components["schemas"]["RolePublic"][];
       /** User Groups */
@@ -50626,6 +50676,66 @@ export interface operations {
       };
       /** @description Forbidden */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_default_user_classification_api_v1_security_classifications_default_user_level__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DefaultUserClassificationRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DefaultUserClassificationResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };

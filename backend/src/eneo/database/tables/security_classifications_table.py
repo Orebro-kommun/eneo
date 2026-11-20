@@ -36,7 +36,8 @@ class SecurityClassification(BasePublic):
         ForeignKey(Tenants.id, ondelete="CASCADE"),
         nullable=False,
     )
-    tenant: Mapped["Tenants"] = relationship()
+    # tenants points back here for its default level, so name the join column.
+    tenant: Mapped["Tenants"] = relationship(foreign_keys=[tenant_id])
 
     # Relationships
     completion_models: Mapped[list["CompletionModels"]] = relationship(
