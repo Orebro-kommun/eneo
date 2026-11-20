@@ -12,6 +12,7 @@ from eneo.roles.permissions import Permission, validate_permissions
 from eneo.security_classifications.domain.entities.security_classification import (
     SecurityClassification,
 )
+from eneo.tenants.tenant import TenantInDB
 from eneo.tenants.tenant_service import TenantService
 from eneo.users.user import UserInDB
 
@@ -154,6 +155,16 @@ class SecurityClassificationService:
         return await self.tenant_service.toggle_security(
             tenant_id=self.user.tenant_id,
             enabled=enabled,
+        )
+
+    @validate_permissions(Permission.ADMIN)
+    async def set_default_user_classification(self, id: UUID | None) -> TenantInDB:
+        """Set the level users work at by default; None clears it."""
+        if id is not None:
+            # Without this an unknown id fails on the foreign key.
+            await self.get_security_classification(id)
+        return await self.tenant_service.set_default_user_security_classification(
+            tenant_id=self.user.tenant_id, classification_id=id
         )
 
     @validate_permissions(Permission.ADMIN)

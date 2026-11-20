@@ -66,6 +66,7 @@ class TenantInDB(PrivacyPolicyMixin, InDB):
     security_enabled: bool = False
     show_model_pricing: bool = True
     default_role_id: Optional[UUID] = None
+    default_user_security_classification_id: Optional[UUID] = None
     modules: list[ModuleInDB] = []
     api_credentials: dict[str, Any] = Field(default_factory=dict)
     federation_config: dict[str, Any] = Field(default_factory=dict)
@@ -271,6 +272,8 @@ class TenantUpdatePublic(BaseModel):
 
 class TenantUpdate(TenantUpdatePublic):
     id: UUID
+    # Not on TenantUpdatePublic: the sysadmin API would accept it unchecked.
+    default_user_security_classification_id: Optional[UUID] = None
 
 
 class ModelPricingVisibility(BaseModel):

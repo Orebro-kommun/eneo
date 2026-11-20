@@ -107,6 +107,18 @@ class SecurityEnableResponse(BaseModel):
     )
 
 
+class DefaultUserClassificationRequest(BaseModel):
+    security_classification: Optional[ModelId] = Field(
+        ...,
+        description="The classification to use as default, or null to clear it",
+    )
+
+
+class DefaultUserClassificationResponse(BaseModel):
+    default_user_security_classification_id: Optional[UUID]
+
+
 class SecurityClassificationResponse(SecurityEnableResponse):
     security_enabled: bool
+    default_user_security_classification_id: Optional[UUID] = None
     security_classifications: list[SecurityClassificationPublic]

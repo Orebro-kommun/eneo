@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, Optional, Ty
 from uuid import UUID
 
 from pydantic import (
+    ConfigDict,
     EmailStr,
     Field,
     SecretStr,
@@ -369,9 +370,20 @@ PasswordChangeCapabilityPublic = Annotated[
 ]
 
 
+class EffectiveSecurityLevelPublic(BaseModel):
+    """The security classification the user works at and where it comes from."""
+
+    security_classification_id: Optional[UUID]
+    source: Literal["group", "default", "none"]
+    user_group_id: Optional[UUID] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserPublic(UserPublicBase):
     truncated_api_key: Optional[str] = None
     quota_limit: Optional[int] = None
+    effective_security_level: EffectiveSecurityLevelPublic
     roles: list[RolePublic]
     user_groups: list[UserGroupRead]
     password_change: PasswordChangeCapabilityPublic
