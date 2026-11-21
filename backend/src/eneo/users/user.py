@@ -296,6 +296,16 @@ class UserGroupRead(InDB):
     name: str
 
 
+class EffectiveSecurityLevelPublic(BaseModel):
+    """The security classification the user works at and where it comes from."""
+
+    security_classification_id: Optional[UUID]
+    source: Literal["group", "default", "none"]
+    user_group_id: Optional[UUID] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserInDB(UserInDBBase):
     password: Optional[str] = Field(min_length=7, max_length=100, default=None)
     salt: Optional[str] = None
@@ -353,6 +363,17 @@ class UserInDB(UserInDBBase):
 
         return permissions_set
 
+    @computed_field
+    @property
+    def effective_security_level(self) -> EffectiveSecurityLevelPublic:
+        from eneo.security_classifications.domain.effective_level import (
+            effective_security_level,
+        )
+
+        return EffectiveSecurityLevelPublic.model_validate(
+            effective_security_level(self)
+        )
+
     @property
     def can_view_model_pricing(self) -> bool:
         return Permission.ADMIN in self.permissions or self.tenant.show_model_pricing
@@ -376,16 +397,6 @@ PasswordChangeCapabilityPublic = Annotated[
     EneoPasswordChangeCapabilityPublic | ExternalPasswordChangeCapabilityPublic,
     Field(discriminator="source"),
 ]
-
-
-class EffectiveSecurityLevelPublic(BaseModel):
-    """The security classification the user works at and where it comes from."""
-
-    security_classification_id: Optional[UUID]
-    source: Literal["group", "default", "none"]
-    user_group_id: Optional[UUID] = None
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class UserPublic(UserPublicBase):
@@ -456,6 +467,7 @@ class UserAdminView(UserPublicBase):
     state: UserState
     password_changed_at: Optional[datetime] = None
     password_change_required: bool = False
+    effective_security_level: EffectiveSecurityLevelPublic
 
     roles: list[RolePublic]
     user_groups: list[UserGroupRead]
