@@ -7694,5 +7694,6 @@
   "shell_palette_catalog": "All assistants and apps",
   "federation_admin_saving_leave_title": "Still saving",
   "federation_admin_saving_leave_description": "The save continues if you leave, but you will not see whether it succeeds.",
-  "federation_admin_saving_leave_confirm": "Leave page"
+  "federation_admin_saving_leave_confirm": "Leave page",
+  "space_security_own_level_hint": "You cannot choose a classification below your own security level ({name})."
 }

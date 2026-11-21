@@ -62,6 +62,7 @@ import { parseRetentionDays } from "@/features/spaces/retention-days";
 import { invalidateDeletedSpace, invalidateSpacesList, type Space } from "@/features/spaces/space";
 import { editorSummaries } from "@/features/spaces/editor-summaries";
 import { useSpace } from "@/features/spaces/use-space";
+import { useAppContext } from "@/components/providers/app-context";
 import { PageHeader } from "@/components/composites/page-header";
 import {
   selectedVisibleMcpServerCount,
@@ -265,6 +266,13 @@ function SecuritySection() {
   const security = securityQuery.data;
   const NONE = "__none__";
   const currentClassificationId = space.security_classification?.id ?? NONE;
+  // Organisation admins may go below their own level; the backend refuses everyone else.
+  const { user, can: canInOrganisation } = useAppContext();
+  const ownLevel = canInOrganisation("admin")
+    ? undefined
+    : security?.security_classifications.find(
+        (item) => item.id === user.effective_security_level?.security_classification_id
+      );
 
   async function saveSecurityClassification(classification: SecurityClassification | null) {
     return autosave(async () => {
@@ -352,14 +360,28 @@ function SecuritySection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>—</SelectItem>
+              <SelectItem value={NONE} disabled={ownLevel !== undefined}>
+                —
+              </SelectItem>
               {security.security_classifications.map((classification) => (
-                <SelectItem key={classification.id} value={classification.id}>
+                <SelectItem
+                  key={classification.id}
+                  value={classification.id}
+                  disabled={
+                    ownLevel !== undefined &&
+                    classification.security_level < ownLevel.security_level
+                  }
+                >
                   {classification.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {ownLevel && can("edit", "space") && (
+            <p className="text-ax-text-secondary text-sm">
+              {t("space_security_own_level_hint", { name: ownLevel.name })}
+            </p>
+          )}
           <ConfirmDialogControlled
             open={pendingImpact !== null}
             onOpenChange={(open) => !open && setPendingImpact(null)}
