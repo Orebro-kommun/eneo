@@ -8,7 +8,11 @@ import pytest
 
 from eneo.audit.domain.action_types import ActionType
 from eneo.audit.domain.entity_types import EntityType
-from eneo.main.exceptions import NotFoundException, UnauthorizedException
+from eneo.main.exceptions import (
+    BadRequestException,
+    NotFoundException,
+    UnauthorizedException,
+)
 from eneo.main.models import ModelId
 from eneo.roles.permissions import Permission
 from eneo.security_classifications.application.security_classification_service import (
@@ -26,7 +30,7 @@ def _service(permissions=(Permission.ADMIN,)):
     user = MagicMock(tenant_id=uuid4(), permissions=set(permissions))
     repo = AsyncMock()
     tenant_service = AsyncMock()
-    return SecurityClassificationService(user, repo, tenant_service)
+    return SecurityClassificationService(user, repo, tenant_service, AsyncMock())
 
 
 async def test_service_stores_an_existing_classification_as_default():
@@ -39,6 +43,16 @@ async def test_service_stores_an_existing_classification_as_default():
     service.tenant_service.set_default_user_security_classification.assert_awaited_once_with(
         tenant_id=service.user.tenant_id, classification_id=classification_id
     )
+
+
+async def test_service_refuses_a_level_no_completion_model_meets():
+    service = _service()
+    service.impact_service.usable_completion_models.return_value = 0
+
+    with pytest.raises(BadRequestException):
+        await service.set_default_user_classification(uuid4())
+
+    service.tenant_service.set_default_user_security_classification.assert_not_awaited()
 
 
 async def test_service_refuses_an_unknown_classification():

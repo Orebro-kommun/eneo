@@ -6472,6 +6472,26 @@ export interface paths {
     patch: operations["update_security_classification_levels_api_v1_security_classifications__patch"];
     trace?: never;
   };
+  "/api/v1/security-classifications/level-impact/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Preview Security Level Impact
+     * @description What would change if the classification were saved as the level of a user group, or as the default user level when no group is given. Leave the classification out to preview clearing the level.
+     */
+    get: operations["preview_security_level_impact_api_v1_security_classifications_level_impact__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/security-classifications/{id}/": {
     parameters: {
       query?: never;
@@ -21713,6 +21733,37 @@ export interface components {
        */
       security_enabled: boolean;
     };
+    /**
+     * SecurityLevelImpactPublic
+     * @description What changes if a level is saved on a user group or as the default.
+     */
+    SecurityLevelImpactPublic: {
+      /**
+       * Affected Users
+       * @description Users whose level would change
+       */
+      affected_users: number;
+      /**
+       * Assistants
+       * @description Personal assistants whose model would fall below the level
+       */
+      assistants: number;
+      /** Apps */
+      apps: number;
+      /** Services */
+      services: number;
+      /** Knowledge Sources */
+      knowledge_sources: number;
+      /**
+       * Completion Models
+       * @description Available completion models that meet the level
+       */
+      completion_models: number;
+      /** Embedding Models */
+      embedding_models: number;
+      /** Transcription Models */
+      transcription_models: number;
+    };
     /** SemanticSearchRequest */
     SemanticSearchRequest: {
       /** Search String */
@@ -25586,6 +25637,7 @@ export interface components {
        * @default false
        */
       password_change_required?: boolean;
+      effective_security_level: components["schemas"]["EffectiveSecurityLevelPublic"];
       /** Roles */
       roles: components["schemas"]["RolePublic"][];
       /** User Groups */
@@ -25922,6 +25974,7 @@ export interface components {
        * @default false
        */
       password_change_required?: boolean;
+      effective_security_level: components["schemas"]["EffectiveSecurityLevelPublic"];
       /** Roles */
       roles: components["schemas"]["RolePublic"][];
       /** User Groups */
@@ -25986,6 +26039,7 @@ export interface components {
        * @default false
        */
       password_change_required?: boolean;
+      effective_security_level: components["schemas"]["EffectiveSecurityLevelPublic"];
       /** Roles */
       roles: components["schemas"]["RolePublic"][];
       /** User Groups */
@@ -50554,6 +50608,56 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  preview_security_level_impact_api_v1_security_classifications_level_impact__get: {
+    parameters: {
+      query?: {
+        security_classification_id?: string | null;
+        user_group_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SecurityLevelImpactPublic"];
         };
       };
       /** @description Forbidden */

@@ -68,6 +68,7 @@ def service(user, security_repo, tenant_service):
         user=user,
         repo=security_repo,
         tenant_service=tenant_service,
+        impact_service=AsyncMock(),
     )
 
 
@@ -79,6 +80,7 @@ def service_without_permissions(
         user=user_without_permissions,
         repo=security_repo,
         tenant_service=tenant_service,
+        impact_service=AsyncMock(),
     )
 
 

@@ -17,6 +17,9 @@ from eneo.tenants.tenant_service import TenantService
 from eneo.users.user import UserInDB
 
 if TYPE_CHECKING:
+    from eneo.security_classifications.application.security_level_impact_service import (  # noqa: E501
+        SecurityLevelImpactService,
+    )
     from eneo.security_classifications.domain.repositories.security_classification_repo_impl import (  # noqa: E501
         SecurityClassificationRepoImpl,
     )
@@ -30,11 +33,13 @@ class SecurityClassificationService:
         user: UserInDB,
         repo: "SecurityClassificationRepoImpl",
         tenant_service: TenantService,
+        impact_service: "SecurityLevelImpactService",
     ) -> None:
         super().__init__()
         self.user = user
         self.repo = repo
         self.tenant_service = tenant_service
+        self.impact_service = impact_service
 
     @validate_permissions(Permission.ADMIN)
     async def create_security_classification(
@@ -162,7 +167,12 @@ class SecurityClassificationService:
         """Set the level users work at by default; None clears it."""
         if id is not None:
             # Without this an unknown id fails on the foreign key.
-            await self.get_security_classification(id)
+            level = await self.get_security_classification(id)
+            if not await self.impact_service.usable_completion_models(level):
+                raise BadRequestException(
+                    "No available completion model meets this security "
+                    "classification, so it cannot be the default user level."
+                )
         return await self.tenant_service.set_default_user_security_classification(
             tenant_id=self.user.tenant_id, classification_id=id
         )
