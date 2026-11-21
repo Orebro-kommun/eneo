@@ -27,6 +27,7 @@ from eneo.security_classifications.presentation.security_classification_models i
     SecurityClassificationsListPublic,
     SecurityEnableRequest,
     SecurityEnableResponse,
+    SecurityLevelImpactPublic,
 )
 from eneo.server.dependencies.container import get_container
 from eneo.server.protocol import responses
@@ -136,6 +137,32 @@ async def list_security_classifications(
         ),
         security_classifications=scs,
     )
+
+
+@router.get(
+    "/level-impact/",
+    response_model=SecurityLevelImpactPublic,
+    description=(
+        "What would change if the classification were saved as the level of a "
+        "user group, or as the default user level when no group is given. "
+        "Leave the classification out to preview clearing the level."
+    ),
+    responses=responses.get_responses([403, 404]),
+)
+@endpoint_access(
+    authentication=Authentication.USER,
+    authorization=Permission.ADMIN,
+    reason="Previewing a user level requires the admin permission.",
+)
+async def preview_security_level_impact(
+    container: ContainerDep,
+    security_classification_id: UUID | None = None,
+    user_group_id: UUID | None = None,
+) -> SecurityLevelImpactPublic:
+    impact = await container.security_level_impact_service().preview(
+        security_classification_id, user_group_id
+    )
+    return SecurityLevelImpactPublic.model_validate(impact)
 
 
 @router.get(

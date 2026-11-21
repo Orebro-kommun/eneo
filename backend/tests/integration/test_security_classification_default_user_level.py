@@ -50,7 +50,8 @@ async def non_admin_headers(db_container, patch_auth_service_jwt, admin_user):
 
 
 @pytest.fixture
-async def classification_id(db_container, admin_user):
+async def classification_id(db_container, admin_user, completion_model_factory):
+    """A classification that one completion model meets, so it can be the default."""
     async with db_container() as container:
         session = container.session()
         row = SecurityClassification(
@@ -60,6 +61,9 @@ async def classification_id(db_container, admin_user):
         )
         session.add(row)
         await session.flush()
+        await completion_model_factory(
+            session, f"m-{uuid4().hex[:6]}", security_classification_id=row.id
+        )
         return row.id
 
 
