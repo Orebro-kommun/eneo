@@ -7694,5 +7694,16 @@
   "shell_palette_catalog": "All assistants and apps",
   "federation_admin_saving_leave_title": "Still saving",
   "federation_admin_saving_leave_description": "The save continues if you leave, but you will not see whether it succeeds.",
-  "federation_admin_saving_leave_confirm": "Leave page"
+  "federation_admin_saving_leave_confirm": "Leave page",
+  "default_user_level": "Default level for users",
+  "default_user_level_description": "Applies to every user who gets no security level from a user group. Personal chat and the user's own assistants only offer models that meet the level.",
+  "no_default_user_level": "No default level",
+  "change_default_user_level": "Change default level",
+  "confirm_default_user_level": "The default level becomes {name} for every user who gets no level from a user group.",
+  "confirm_clear_default_user_level": "The default level is removed. Users who get no level from a user group will then have no security level.",
+  "user_group_security_level": "Security level",
+  "user_group_security_level_title": "Security level for {name}",
+  "user_group_security_level_description": "The group's members work at this level in personal chat and with their own assistants. For a user in several groups the strictest level applies.",
+  "user_group_no_security_level": "No level",
+  "admin_user_groups_level_saved": "The security level for {name} was saved"
 }

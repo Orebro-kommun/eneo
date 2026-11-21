@@ -7694,5 +7694,16 @@
   "shell_palette_catalog": "Alla assistenter och appar",
   "federation_admin_saving_leave_title": "Sparningen pågår",
   "federation_admin_saving_leave_description": "Sparningen fortsätter även om du lämnar sidan, men då ser du inte om den lyckas.",
-  "federation_admin_saving_leave_confirm": "Lämna sidan"
+  "federation_admin_saving_leave_confirm": "Lämna sidan",
+  "default_user_level": "Standardnivå för användare",
+  "default_user_level_description": "Gäller alla användare som inte får en säkerhetsnivå från en användargrupp. I personlig chatt och bland egna assistenter erbjuds bara modeller som klarar nivån.",
+  "no_default_user_level": "Ingen standardnivå",
+  "change_default_user_level": "Ändra standardnivå",
+  "confirm_default_user_level": "Standardnivån blir {name} för alla användare som inte får en nivå från en användargrupp.",
+  "confirm_clear_default_user_level": "Standardnivån tas bort. Användare som inte får en nivå från en användargrupp får då ingen säkerhetsnivå.",
+  "user_group_security_level": "Säkerhetsnivå",
+  "user_group_security_level_title": "Säkerhetsnivå för {name}",
+  "user_group_security_level_description": "Gruppens medlemmar arbetar på den här nivån i personlig chatt och med egna assistenter. Är en användare med i flera grupper gäller den strängaste nivån.",
+  "user_group_no_security_level": "Ingen nivå",
+  "admin_user_groups_level_saved": "Säkerhetsnivån för {name} sparades"
 }
