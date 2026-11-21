@@ -133,6 +133,16 @@ class UserGroupsRepository:
         except IntegrityError as e:
             raise UniqueException(self.UNIQUE_EXCEPTION_MSG) from e
 
+    async def set_security_classification(
+        self, id: UUID, security_classification_id: UUID | None
+    ) -> UserGroupInDB | None:
+        await self.delegate.session.execute(
+            sa.update(UserGroups)
+            .where(UserGroups.id == id)
+            .values(security_classification_id=security_classification_id)
+        )
+        return await self.get_user_group(id)
+
     async def delete_user_group(self, id: UUID) -> UserGroupInDB | None:
         return await self.delegate.delete(id)
 

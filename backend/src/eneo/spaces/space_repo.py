@@ -1277,7 +1277,7 @@ class SpaceRepository:
             services_in_db=services,
             integration_knowledge_in_db=integration_knowledge_union,
             security_classification=entry_in_db.security_classification,
-            # self.user is the owner, except when an admin deletes the user.
+            # self.user is the owner: nobody else has a role in a personal space.
             floor=(
                 await security_floor_for(self.session, self.user)
                 if entry_in_db.user_id is not None

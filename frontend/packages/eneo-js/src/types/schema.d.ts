@@ -3669,6 +3669,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/user-groups/{id}/security-classification/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set User Group Security Classification
+     * @description Set the security classification the users of a group work at. Send null to clear it.
+     */
+    put: operations["set_user_group_security_classification_api_v1_user_groups__id__security_classification__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/spaces/{space_id}/widgets/": {
     parameters: {
       query?: never;
@@ -25601,6 +25621,30 @@ export interface components {
        */
       deleted_at: string | null;
     };
+    /**
+     * UserGroupAdminPublic
+     * @description A group as an administrator reads it; the list is open to every member.
+     */
+    UserGroupAdminPublic: {
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /**
+       * Users
+       * @default []
+       */
+      users?: components["schemas"]["UserSparse"][];
+      /** Security Classification Id */
+      security_classification_id?: string | null;
+    };
     /** UserGroupCreateRequest */
     UserGroupCreateRequest: {
       /** Name */
@@ -25638,6 +25682,11 @@ export interface components {
       id: string;
       /** Name */
       name: string;
+    };
+    /** UserGroupSecurityClassificationRequest */
+    UserGroupSecurityClassificationRequest: {
+      /** @description The classification the group's users work at, or null to clear it */
+      security_classification: components["schemas"]["ModelId"] | null;
     };
     /** UserGroupUpdateRequest */
     UserGroupUpdateRequest: {
@@ -41420,7 +41469,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["UserGroupPublic"];
+          "application/json": components["schemas"]["UserGroupAdminPublic"];
         };
       };
       /** @description Forbidden */
@@ -41650,6 +41699,68 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["UserGroupPublic"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_user_group_security_classification_api_v1_user_groups__id__security_classification__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UserGroupSecurityClassificationRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserGroupAdminPublic"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
         };
       };
       /** @description Forbidden */

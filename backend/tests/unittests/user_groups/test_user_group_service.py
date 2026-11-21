@@ -14,6 +14,7 @@ from tests.fixtures import TEST_TENANT, TEST_USER, TEST_USER_2
 def service_with_mocks():
     return UserGroupsService(
         repo=AsyncMock(),
+        security_classification_repo=AsyncMock(),
         user=TEST_USER,
     )
 
