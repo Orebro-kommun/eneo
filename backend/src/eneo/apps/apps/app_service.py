@@ -591,6 +591,7 @@ class AppService:
                 },
             )
 
+        space.check_personal_level(app.completion_model, app.transcription_model)
         if not space.can_run_app(app=app):
             raise UnauthorizedException(
                 "This app cannot be run in the current space configuration.",

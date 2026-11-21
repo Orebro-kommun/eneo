@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from eneo.main.exceptions import ModelNotAvailableException
+from eneo.main.exceptions import SecurityClassificationMismatchException
 from eneo.security_classifications.domain.entities.security_classification import (
     SecurityClassification,
 )
@@ -90,7 +90,7 @@ def _assistant(completion_model: MagicMock) -> MagicMock:
 
 
 def test_an_assistant_whose_model_is_below_the_floor_cannot_be_asked(space, models):
-    with pytest.raises(ModelNotAvailableException):
+    with pytest.raises(SecurityClassificationMismatchException):
         space.can_ask_assistant(_assistant(models["low_chat"]))
 
 

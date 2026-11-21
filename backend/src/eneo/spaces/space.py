@@ -525,6 +525,22 @@ class Space:
 
         return True
 
+    def check_personal_level(
+        self, *models: "CompletionModel | TranscriptionModel | None"
+    ) -> None:
+        """Refuse, with the reason, a model below a personal space's owner's level."""
+        floor = self.security_classification
+        if not self.is_personal() or floor is None:
+            return
+        if any(
+            model is not None and floor.is_greater_than(model.security_classification)
+            for model in models
+        ):
+            raise SecurityClassificationMismatchException(
+                "The selected AI model does not meet your security level. "
+                "Please choose a different model or contact your administrator."
+            )
+
     def can_ask_assistant(
         self,
         assistant: "Assistant",
@@ -538,6 +554,7 @@ class Space:
                 "No AI model is configured for this assistant. "
                 "Please select a model in the assistant settings."
             )
+        self.check_personal_level(completion_model)
         if not self.is_completion_model_available(completion_model.id):
             raise ModelNotAvailableException(
                 "The selected AI model is not available in this space. "

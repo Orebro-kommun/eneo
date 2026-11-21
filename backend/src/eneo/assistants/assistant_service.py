@@ -708,7 +708,9 @@ class AssistantService:
         ):
             return None
         return await self.effective_config_service.resolve_for(
-            assistant, space_is_personal=space.is_personal()
+            assistant,
+            space_is_personal=space.is_personal(),
+            floor=space.security_classification,
         )
 
     @staticmethod
