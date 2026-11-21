@@ -1366,6 +1366,11 @@ class SpaceRepository:
                 tenant_id=space.tenant_id,
                 user_id=space.user_id,
                 tenant_space_id=space.tenant_space_id,
+                security_classification_id=(
+                    space.security_classification.id
+                    if space.security_classification
+                    else None
+                ),
             )
             .returning(Spaces)
         )
