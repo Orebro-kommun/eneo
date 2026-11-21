@@ -5,6 +5,11 @@ from eneo.main.exceptions import (
     NotFoundException,
     UnauthorizedException,
 )
+from eneo.roles.permissions import Permission
+from eneo.security_classifications.domain.effective_level import (
+    meets_security_floor,
+    security_floor_for,
+)
 from eneo.widgets.domain.exceptions import AssistantPublishedAsWidgetError
 from eneo.widgets.domain.widget import WidgetStatus
 
@@ -102,6 +107,20 @@ class ResourceMoverService:
                 "User does not have permission to move assistant from space"
             )
         self._require_same_tenant(source_space, target_space)
+        # Inside shared spaces the space's own level governs, so only a move
+        # out of the personal space is held to the user's level.
+        if (
+            source_space.is_personal()
+            and Permission.ADMIN not in self.user.permissions
+            and not meets_security_floor(
+                await security_floor_for(self.space_repo.session, self.user),
+                target_space.security_classification,
+            )
+        ):
+            raise UnauthorizedException(
+                "An assistant cannot be moved from your personal space to a "
+                "space below your security level."
+            )
 
         assistant = source_space.get_assistant(assistant_id)
 
