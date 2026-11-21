@@ -20,6 +20,7 @@ import { browserApi } from "@/lib/api/browser";
 import { unwrap } from "@/lib/api/errors";
 import { toastApiError } from "@/lib/api/toast";
 import { ClassificationDialog } from "./classification-dialog";
+import { LevelImpact } from "./level-impact";
 import {
   SECURITY_CLASSIFICATIONS_KEY,
   highestFirst,
@@ -229,7 +230,9 @@ function DefaultUserLevel({
         onConfirm={() => {
           if (pending !== undefined) save.mutate(pending);
         }}
-      />
+      >
+        {pending !== undefined && <LevelImpact classificationId={pending?.id ?? null} />}
+      </ConfirmDialogControlled>
     </SettingsRow>
   );
 }
