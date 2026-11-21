@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { renderInApp } from "@/test/render";
+import { renderInApp, testAppContext } from "@/test/render";
 import { expectNoAxeViolations } from "@/test/axe";
 import type { Schema } from "@/lib/api/models";
 import type { Space } from "../space";
@@ -157,4 +157,52 @@ it("keeps named impact after a failed save and refreshes visible models on succe
     { security_classification: { id: "secret" } }
   ]);
   await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+});
+
+function withOwnLevel(id: string, permissions: Schema<"Permission">[] = []) {
+  const context = testAppContext({ permissions });
+  return {
+    ...context,
+    user: {
+      ...context.user,
+      effective_security_level: {
+        security_classification_id: id,
+        source: "group" as const,
+        user_group_id: "g1"
+      }
+    }
+  };
+}
+
+it("does not offer a classification below the user's own level, and says why", async () => {
+  state.space = { ...state.space, security_classification: classifications[1]! };
+  renderInApp(<SpaceSettings />, { appContext: withOwnLevel("secret") });
+  const section = document.getElementById("security")!;
+  expect(
+    await within(section).findByText(
+      "Du kan inte välja en klassificering under din egen säkerhetsnivå (Hemlig)."
+    )
+  ).toBeTruthy();
+
+  fireEvent.click(await within(section).findByRole("combobox"));
+
+  for (const name of ["—", "Intern"]) {
+    expect((await screen.findByRole("option", { name })).getAttribute("aria-disabled")).toBe(
+      "true"
+    );
+  }
+  expect(screen.getByRole("option", { name: "Hemlig" }).getAttribute("aria-disabled")).toBeNull();
+});
+
+it("lets an organisation admin choose a classification below their own level", async () => {
+  state.space = { ...state.space, security_classification: classifications[1]! };
+  renderInApp(<SpaceSettings />, { appContext: withOwnLevel("secret", ["admin"]) });
+  const section = document.getElementById("security")!;
+
+  fireEvent.click(await within(section).findByRole("combobox"));
+
+  expect(
+    (await screen.findByRole("option", { name: "Intern" })).getAttribute("aria-disabled")
+  ).toBeNull();
+  expect(within(section).queryByText(/under din egen säkerhetsnivå/)).toBeNull();
 });

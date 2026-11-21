@@ -7694,5 +7694,6 @@
   "shell_palette_catalog": "Alla assistenter och appar",
   "federation_admin_saving_leave_title": "Sparningen pågår",
   "federation_admin_saving_leave_description": "Sparningen fortsätter även om du lämnar sidan, men då ser du inte om den lyckas.",
-  "federation_admin_saving_leave_confirm": "Lämna sidan"
+  "federation_admin_saving_leave_confirm": "Lämna sidan",
+  "space_security_own_level_hint": "Du kan inte välja en klassificering under din egen säkerhetsnivå ({name})."
 }
