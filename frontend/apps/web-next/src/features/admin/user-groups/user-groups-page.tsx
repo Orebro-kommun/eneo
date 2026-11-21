@@ -17,7 +17,7 @@ import {
 } from "@astryxdesign/core/Table";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Lock, MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useTranslations } from "use-intl";
 import { useId, useMemo, useRef, useState } from "react";
 import { Table } from "@/components/astryx/table";
@@ -33,6 +33,7 @@ import { useFocusRescue } from "@/lib/focus-rescue";
 import { toast } from "@/lib/toast";
 import { useRemovalMutation } from "@/features/spaces/removal";
 import { UserGroupDialog } from "./user-group-dialog";
+import { UserGroupLevelDialog } from "./user-group-level-dialog";
 import { UserGroupMembersDialog } from "./user-group-members-dialog";
 import { refreshUserGroups, type UserGroup, userGroupsQueryOptions } from "./user-groups";
 
@@ -41,11 +42,12 @@ type SortKey = "name" | "users";
 /** Members shown as avatars in a row; the rest are counted. */
 const VISIBLE_MEMBERS = 3;
 
-/** What is open: the create or rename dialog, a group's members or a delete confirmation. */
+/** What is open: the create or rename dialog, a group's members, its level or a delete confirmation. */
 type Flow =
   | { kind: "create" }
   | { kind: "rename"; id: string }
   | { kind: "members"; id: string }
+  | { kind: "level"; id: string }
   | { kind: "delete"; id: string }
   | null;
 
@@ -85,16 +87,18 @@ function MemberStack({ group }: { group: UserGroup }) {
   );
 }
 
-/** The row menu: manage members, rename, delete. */
+/** The row menu: manage members, rename, security level, delete. */
 function GroupActions({
   group,
   onMembers,
   onRename,
+  onLevel,
   onDelete
 }: {
   group: UserGroup;
   onMembers: () => void;
   onRename: () => void;
+  onLevel: () => void;
   onDelete: () => void;
 }) {
   const t = useTranslations();
@@ -114,6 +118,7 @@ function GroupActions({
     >
       <DropdownMenuItem icon={Users} label={t("manage_members")} onClick={onMembers} />
       <DropdownMenuItem icon={Pencil} label={t("rename")} onClick={onRename} />
+      <DropdownMenuItem icon={Lock} label={t("user_group_security_level")} onClick={onLevel} />
       <DropdownMenuDivider />
       <DropdownMenuItem
         icon={Trash2}
@@ -170,6 +175,7 @@ function UserGroupTable({
           group={group}
           onMembers={() => onAction({ kind: "members", id: group.id })}
           onRename={() => onAction({ kind: "rename", id: group.id })}
+          onLevel={() => onAction({ kind: "level", id: group.id })}
           onDelete={() => onAction({ kind: "delete", id: group.id })}
         />
       )
@@ -284,6 +290,13 @@ export function AdminUserGroupsPage() {
       <UserGroupMembersDialog
         group={flow?.kind === "members" ? flowGroup : null}
         open={flow?.kind === "members" && flowGroup !== null}
+        onOpenChange={(open) => {
+          if (!open) end();
+        }}
+      />
+      <UserGroupLevelDialog
+        group={flow?.kind === "level" ? flowGroup : null}
+        open={flow?.kind === "level" && flowGroup !== null}
         onOpenChange={(open) => {
           if (!open) end();
         }}

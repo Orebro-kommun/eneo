@@ -8,6 +8,13 @@ import { PageHeader } from "@/components/composites/page-header";
 import { SettingsGroup, SettingsRow } from "@/components/composites/settings-rows";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { browserApi } from "@/lib/api/browser";
 import { unwrap } from "@/lib/api/errors";
@@ -157,6 +164,76 @@ function EnableToggle({ enabled }: { enabled: boolean }) {
   );
 }
 
+const NO_DEFAULT = "__none__";
+
+/** The level of every user who gets none from a user group. Asks before it saves. */
+function DefaultUserLevel({
+  classifications,
+  currentId
+}: {
+  classifications: SecurityClassification[];
+  currentId: string | null;
+}) {
+  const t = useTranslations();
+  const queryClient = useQueryClient();
+  // undefined: nothing asked; null: asked to clear the default.
+  const [pending, setPending] = useState<SecurityClassification | null | undefined>(undefined);
+
+  const save = useMutation({
+    mutationFn: (next: SecurityClassification | null) =>
+      unwrap(
+        browserApi.PUT("/api/v1/security-classifications/default-user-level/", {
+          body: { security_classification: next ? { id: next.id } : null }
+        })
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: SECURITY_CLASSIFICATIONS_KEY });
+      setPending(undefined);
+    },
+    onError: (error) => toastApiError(error, t)
+  });
+
+  return (
+    <SettingsRow title={t("default_user_level")} description={t("default_user_level_description")}>
+      <Select
+        value={currentId ?? NO_DEFAULT}
+        onValueChange={(value) => {
+          if (save.isPending || value === (currentId ?? NO_DEFAULT)) return;
+          setPending(classifications.find((item) => item.id === value) ?? null);
+        }}
+      >
+        <SelectTrigger className="w-64" aria-label={t("default_user_level")}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_DEFAULT}>{t("no_default_user_level")}</SelectItem>
+          {classifications.map((classification) => (
+            <SelectItem key={classification.id} value={classification.id}>
+              {classification.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <ConfirmDialogControlled
+        open={pending !== undefined}
+        onOpenChange={(open) => !open && setPending(undefined)}
+        title={t("change_default_user_level")}
+        description={
+          pending
+            ? t("confirm_default_user_level", { name: pending.name })
+            : t("confirm_clear_default_user_level")
+        }
+        confirmLabel={save.isPending ? t("saving") : t("confirm")}
+        variant="default"
+        pending={save.isPending}
+        onConfirm={() => {
+          if (pending !== undefined) save.mutate(pending);
+        }}
+      />
+    </SettingsRow>
+  );
+}
+
 export function SecurityClassificationsPage() {
   const t = useTranslations();
   const queryClient = useQueryClient();
@@ -196,6 +273,12 @@ export function SecurityClassificationsPage() {
 
       <SettingsGroup title={t("general")}>
         <EnableToggle enabled={data.security_enabled} />
+        {data.security_enabled && (
+          <DefaultUserLevel
+            classifications={ordered}
+            currentId={data.default_user_security_classification_id ?? null}
+          />
+        )}
       </SettingsGroup>
 
       <SettingsGroup title={t("configuration")}>
