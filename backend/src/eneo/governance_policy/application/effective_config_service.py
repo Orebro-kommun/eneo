@@ -17,6 +17,7 @@ from eneo.mcp_servers.domain.entities.mcp_server import (
     allowed_capability_purposes,
     is_capability_purpose,
 )
+from eneo.security_classifications.domain.effective_level import meets_security_floor
 from eneo.skills.domain.skill import PersonalChatPinOverride, SkillRuntimeResolution
 
 if TYPE_CHECKING:
@@ -33,6 +34,9 @@ if TYPE_CHECKING:
     )
     from eneo.mcp_servers.domain.entities.mcp_server import MCPServer
     from eneo.prompt_library.domain.prompt_library_repo import PromptLibraryRepo
+    from eneo.security_classifications.domain.entities.security_classification import (
+        SecurityClassification,
+    )
     from eneo.skills.application.skill_service import SkillService
     from eneo.users.user import UserInDB
 
@@ -62,13 +66,17 @@ class EffectiveConfigService:
         self.skill_service = skill_service
 
     async def resolve_for(
-        self, assistant: "Assistant", *, space_is_personal: bool
+        self,
+        assistant: "Assistant",
+        *,
+        space_is_personal: bool,
+        floor: "SecurityClassification | None" = None,
     ) -> EffectiveConfig:
         """Compute the effective config for an assistant.
 
         Returns the empty config for non-default assistants, non-personal
         spaces, and when no policy exists — all via the resolver's own
-        short-circuits.
+        short-circuits. ``floor`` is the personal space's classification.
         """
         if not assistant.is_default or not space_is_personal:
             return resolve(
@@ -80,14 +88,20 @@ class EffectiveConfigService:
                 library_prompt_text=None,
             )
 
-        return await self.resolve_personal_default()
+        return await self.resolve_personal_default(floor=floor)
 
     async def resolve_personal_default(
         self,
         *,
         personal_chat_pin_override: PersonalChatPinOverride | None = None,
+        floor: "SecurityClassification | None" = None,
     ) -> EffectiveConfig:
-        """Resolve the current personal-default policy without an Assistant."""
+        """Resolve the current personal-default policy without an Assistant.
+
+        With a ``floor``, models and MCP servers below it never reach the
+        resolver, so no default or locked model can point at one. Without it
+        the policy is resolved for the whole organisation.
+        """
 
         # A personal default assistant maps to exactly one scope today. When
         # finer scopes are added, derive the scope in this service.
@@ -114,7 +128,13 @@ class EffectiveConfigService:
                 return []
             # Tenant-accessible completion models. Global models (tenant_id=NULL)
             # show up here because `can_access` already accounts for them.
-            return await self.completion_model_crud_service.get_available_completion_models()
+            models = await self.completion_model_crud_service.get_available_completion_models()
+            return [
+                model
+                for model in models
+                if floor is None
+                or meets_security_floor(floor, model.security_classification)
+            ]
 
         async def _load_mcp_servers() -> "list[MCPServer]":
             if not policy.mcp_restriction_enabled:
@@ -123,11 +143,21 @@ class EffectiveConfigService:
             # Capability servers stay even when deactivated: the policy holds a
             # capability marker that the ask path resolves to the active
             # provider, so dropping it would silently remove the capability
-            # after a provider switch. General servers must be enabled.
+            # after a provider switch. General servers must be enabled and
+            # meet the floor; the ask path checks the provider it resolves.
             return [
                 server
                 for server in servers
-                if server.is_enabled or is_capability_purpose(server.purpose)
+                if is_capability_purpose(server.purpose)
+                or (
+                    server.is_enabled
+                    and (
+                        floor is None
+                        or meets_security_floor(
+                            floor, server.effective_security_classification
+                        )
+                    )
+                )
             ]
 
         async def _load_prompt_text() -> str | None:
@@ -167,6 +197,7 @@ class EffectiveConfigService:
             describe_capability_availability(
                 tenant_mcp_servers,
                 purpose,
+                floor,
                 user_group_ids=self.user.user_groups_ids,
                 allowed_purposes=allowed_capability_purposes(self.user.permissions),
             )

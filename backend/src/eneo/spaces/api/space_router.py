@@ -161,7 +161,9 @@ async def _space_response(container: Container, space: "Space") -> SpacePublic:
     ):
         effective_config_service = container.effective_config_service()
         effective_config = await effective_config_service.resolve_for(
-            space.default_assistant, space_is_personal=space.is_personal()
+            space.default_assistant,
+            space_is_personal=space.is_personal(),
+            floor=space.security_classification,
         )
     return assembler.from_space_to_model(
         space, default_assistant_effective_config=effective_config

@@ -20,6 +20,7 @@ def _build_assistant_service_with_mocks(*, is_personal=True, server_in_space=Fal
         is_personal=lambda: is_personal,
         is_mcp_server_in_space=lambda _server_id: server_in_space,
         mcp_servers=[],
+        security_classification=None,
     )
     actor = SimpleNamespace(
         can_edit_assistants=lambda: True,

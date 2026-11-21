@@ -182,6 +182,7 @@ class ServiceService:
     async def get_runnable_service(self, service_id: UUID) -> Service:
         service, space, _permissions = await self._get_service_and_space(service_id)
 
+        space.check_personal_level(service.completion_model)
         if not space.can_use_service(service):
             raise UnauthorizedException(
                 "This service cannot be run in the current space configuration."
