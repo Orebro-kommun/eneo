@@ -71,7 +71,7 @@ async def _default_assistant_id(db_container) -> UUID:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_the_default_assistant_leaves_a_model_below_the_level(
+async def test_the_default_assistant_is_moved_off_a_model_below_the_level(
     db_container, admin_user, models
 ):
     assistant_id = await _default_assistant_id(db_container)
