@@ -11,6 +11,7 @@ from eneo.database.tables.security_classifications_table import (
 from eneo.security_classifications.domain.entities.security_classification import (
     SecurityClassification,
 )
+from eneo.user_groups.user_group import UserGroupState
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,6 +44,22 @@ def effective_security_level(user: "UserInDB") -> EffectiveSecurityLevel:
     """The level a user works at and where it comes from, without a lookup."""
     if not user.tenant.security_enabled:
         return _NO_LEVEL
+    levels = [
+        (group.security_classification, group.id)
+        for group in user.user_groups
+        if group.state != UserGroupState.DELETED
+        and group.security_classification is not None
+    ]
+    if levels:
+        # Strictest first; the lowest group id settles a tie.
+        classification, group_id = min(
+            levels, key=lambda level: (-level[0].security_level, level[1])
+        )
+        return EffectiveSecurityLevel(
+            security_classification_id=classification.id,
+            source="group",
+            user_group_id=group_id,
+        )
     default_id = user.tenant.default_user_security_classification_id
     if default_id is None:
         return _NO_LEVEL

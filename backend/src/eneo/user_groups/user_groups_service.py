@@ -3,6 +3,9 @@ from uuid import UUID
 from eneo.main.exceptions import AuthenticationException, NotFoundException
 from eneo.main.models import ModelId
 from eneo.roles.permissions import Permission, validate_permissions
+from eneo.security_classifications.domain.repositories.security_classification_repo_impl import (
+    SecurityClassificationRepoImpl,
+)
 from eneo.user_groups.user_group import (
     UserGroupCreate,
     UserGroupCreateRequest,
@@ -20,10 +23,12 @@ class UserGroupsService:
         self,
         user: UserInDB,
         repo: UserGroupsRepository,
+        security_classification_repo: SecurityClassificationRepoImpl,
     ):
         super().__init__()
         self.user = user
         self.repo = repo
+        self.security_classification_repo = security_classification_repo
 
     def _validate(
         self, user_group: UserGroupInDB | None, user_group_uuid: UUID
@@ -78,6 +83,26 @@ class UserGroupsService:
         self._check_relationships(updated_user_group)
 
         return updated_user_group
+
+    @validate_permissions(Permission.ADMIN)
+    async def set_security_classification(
+        self, user_group_uuid: UUID, security_classification_id: UUID | None
+    ) -> tuple[UserGroupInDB, UUID | None]:
+        """Set the level the group's users work at; None clears it.
+
+        Returns the group and the level it had before.
+        """
+        previous = await self.get_user_group_by_uuid(user_group_uuid)
+        assert previous is not None
+        if security_classification_id is not None:
+            # Without this an unknown id fails on the foreign key.
+            await self.security_classification_repo.one(security_classification_id)
+
+        user_group = await self.repo.set_security_classification(
+            user_group_uuid, security_classification_id
+        )
+        assert user_group is not None
+        return user_group, previous.security_classification_id
 
     @validate_permissions(Permission.ADMIN)
     async def delete_user_group(self, user_group_uuid: UUID):

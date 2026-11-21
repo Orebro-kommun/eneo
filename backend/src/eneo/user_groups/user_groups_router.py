@@ -3,6 +3,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from eneo.audit.application.audit_metadata import AuditMetadata
+from eneo.audit.domain.action_types import ActionType
+from eneo.audit.domain.entity_types import EntityType
 from eneo.authentication.endpoint_access import (
     Authentication,
     Authorization,
@@ -14,8 +17,10 @@ from eneo.roles.permissions import Permission
 from eneo.server.dependencies.container import get_container
 from eneo.server.protocol import responses, to_paginated_response
 from eneo.user_groups.user_group import (
+    UserGroupAdminPublic,
     UserGroupCreateRequest,
     UserGroupPublic,
+    UserGroupSecurityClassificationRequest,
     UserGroupUpdateRequest,
 )
 
@@ -44,7 +49,7 @@ async def get_user_groups(
 
 @router.get(
     "/{id}/",
-    response_model=UserGroupPublic,
+    response_model=UserGroupAdminPublic,
     description="Get a single user group by id.",
     responses=responses.get_responses([403, 404]),
 )
@@ -159,3 +164,52 @@ async def delete_user_from_user_group(
 ):
     service = container.user_group_service()
     return await service.remove_user(user_group_uuid=id, user_id=user_id)
+
+
+@router.put(
+    "/{id}/security-classification/",
+    response_model=UserGroupAdminPublic,
+    description=(
+        "Set the security classification the users of a group work at. "
+        "Send null to clear it."
+    ),
+    responses=responses.get_responses([400, 403, 404]),
+)
+@endpoint_access(
+    authentication=Authentication.USER,
+    authorization=Permission.ADMIN,
+    reason="Managing tenant user groups requires the admin permission.",
+)
+async def set_user_group_security_classification(
+    id: UUID,
+    request: UserGroupSecurityClassificationRequest,
+    container: Annotated[Container, Depends(get_container(with_user=True))],
+):
+    service = container.user_group_service()
+    user = container.user()
+    user_group, old = await service.set_security_classification(
+        id,
+        request.security_classification.id if request.security_classification else None,
+    )
+    new = user_group.security_classification_id
+
+    await container.audit_service().log_async(
+        tenant_id=user.tenant_id,
+        user=user,
+        action=ActionType.TENANT_SETTINGS_UPDATED,
+        entity_type=EntityType.USER_GROUP,
+        entity_id=user_group.id,
+        description="Updated the security level of a user group",
+        metadata=AuditMetadata.standard(
+            actor=user,
+            target=user_group,
+            changes={
+                "security_classification_id": {
+                    "old": str(old) if old else None,
+                    "new": str(new) if new else None,
+                }
+            },
+        ),
+    )
+
+    return user_group

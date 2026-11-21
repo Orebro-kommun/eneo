@@ -1473,7 +1473,10 @@ class Container(containers.DeclarativeContainer):
         effective_config_service=effective_config_service,
     )
     user_group_service = providers.Factory(
-        UserGroupsService, user=user, repo=user_groups_repo
+        UserGroupsService,
+        user=user,
+        repo=user_groups_repo,
+        security_classification_repo=security_classification_repo,
     )
     user_service = providers.Factory(
         UserService,
