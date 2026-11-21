@@ -7716,5 +7716,6 @@
   "user_security_level": "Säkerhetsnivå",
   "user_security_level_from_group": "{level}, från användargruppen {group}",
   "user_security_level_from_default": "{level}, organisationens standardnivå",
-  "user_security_level_none": "Ingen säkerhetsnivå"
+  "user_security_level_none": "Ingen säkerhetsnivå",
+  "space_security_own_level_hint": "Du kan inte välja en klassificering under din egen säkerhetsnivå ({name})."
 }

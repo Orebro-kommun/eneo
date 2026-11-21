@@ -7716,5 +7716,6 @@
   "user_security_level": "Security level",
   "user_security_level_from_group": "{level}, from the user group {group}",
   "user_security_level_from_default": "{level}, the organisation's default level",
-  "user_security_level_none": "No security level"
+  "user_security_level_none": "No security level",
+  "space_security_own_level_hint": "You cannot choose a classification below your own security level ({name})."
 }
