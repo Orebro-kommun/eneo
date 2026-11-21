@@ -21,6 +21,7 @@ def _user(default_id=None, security_enabled=True):
     return SimpleNamespace(
         id=uuid4(),
         tenant_id=uuid4(),
+        user_groups=[],
         tenant=SimpleNamespace(
             security_enabled=security_enabled,
             default_user_security_classification_id=default_id,

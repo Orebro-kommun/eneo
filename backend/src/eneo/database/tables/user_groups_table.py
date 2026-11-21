@@ -8,6 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from eneo.database.tables.base_class import BasePublic
 
 if TYPE_CHECKING:
+    from eneo.database.tables.security_classifications_table import (
+        SecurityClassification,
+    )
     from eneo.database.tables.tenant_table import Tenants
     from eneo.database.tables.users_table import Users
 
@@ -20,8 +23,16 @@ class UserGroups(BasePublic):
         ForeignKey("tenants.id", ondelete="CASCADE")
     )
 
+    security_classification_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("security_classifications.id", ondelete="SET NULL")
+    )
+
     # relationships
     tenant: Mapped["Tenants"] = relationship()
+    # Joined, so every load of a user's groups has the level without a query.
+    security_classification: Mapped[Optional["SecurityClassification"]] = relationship(
+        lazy="joined"
+    )
     users: Mapped[list["Users"]] = relationship(secondary="usergroups_users")
 
     __table_args__ = (

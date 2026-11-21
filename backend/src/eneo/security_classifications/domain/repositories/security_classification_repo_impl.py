@@ -160,6 +160,8 @@ class SecurityClassificationRepoImpl(BaseRepository):
         from eneo.database.tables.mcp_server_table import MCPServers
         from eneo.database.tables.spaces_table import Spaces
         from eneo.database.tables.tenant_table import Tenants
+        from eneo.database.tables.user_groups_table import UserGroups
+        from eneo.user_groups.user_group import UserGroupState
 
         # Soft-deleted completion and rerank models still carry their FK to
         # the classification, but they're not active anymore — counting them
@@ -201,6 +203,16 @@ class SecurityClassificationRepoImpl(BaseRepository):
                 .where(Tenants.default_user_security_classification_id == id)
                 .scalar_subquery()
                 .label("default_user_level"),
+                sa.select(sa.func.count())
+                .where(
+                    UserGroups.security_classification_id == id,
+                    sa.or_(
+                        UserGroups.state.is_(None),
+                        UserGroups.state != UserGroupState.DELETED,
+                    ),
+                )
+                .scalar_subquery()
+                .label("user_groups"),
             )
         )
         row = counts.one()
@@ -212,6 +224,7 @@ class SecurityClassificationRepoImpl(BaseRepository):
             "spaces": row.spaces,
             "mcp_servers": row.mcp_servers,
             "default_user_level": row.default_user_level,
+            "user_groups": row.user_groups,
         }
 
     @override

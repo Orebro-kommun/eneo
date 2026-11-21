@@ -279,9 +279,17 @@ class UserInDBBase(InDB, UserBase):
     tenant_id: UUID
 
 
+class UserGroupSecurityLevel(BaseModel):
+    id: UUID
+    security_level: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserGroupInDBRead(InDB):
     name: str
     state: Optional[str] = None
+    security_classification: Optional[UserGroupSecurityLevel] = None
 
 
 class UserGroupRead(InDB):

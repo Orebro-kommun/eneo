@@ -87,8 +87,10 @@ async def test_the_responses_return_each_member_as_a_sparse_user(
 
     assert (listed.status_code, single.status_code) == (200, 200)
     [from_list] = [g for g in listed.json()["items"] if g["id"] == str(created.id)]
+    public = {"id", "name", "created_at", "updated_at", "users"}
+    assert from_list.keys() == public
+    assert single.json().keys() == public | {"security_classification_id"}
     for body in (from_list, single.json()):
-        assert body.keys() == {"id", "name", "created_at", "updated_at", "users"}
         assert body["name"] == created.name
         assert {
             u["id"]: (set(u), u["email"], u["username"]) for u in body["users"]
