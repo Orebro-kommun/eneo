@@ -1,11 +1,22 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openMenuOnRelease } from "@/test/menus";
 import { renderInApp } from "@/test/render";
 
 const post = vi.hoisted(() => vi.fn());
 const put = vi.hoisted(() => vi.fn());
+const impactRequest = vi.hoisted(() => vi.fn());
+const impact = {
+  affected_users: 12,
+  assistants: 3,
+  apps: 0,
+  services: 1,
+  knowledge_sources: 0,
+  completion_models: 2,
+  embedding_models: 1,
+  transcription_models: 0
+};
 const state = vi.hoisted(() => ({ defaultLevel: null as string | null }));
 const toast = vi.hoisted(() => ({
   success: vi.fn(),
@@ -18,23 +29,30 @@ vi.mock("@/lib/api/browser", () => ({
   browserApi: {
     POST: post,
     PUT: put,
-    GET: () =>
-      Promise.resolve({
-        data: {
-          security_enabled: true,
-          default_user_security_classification_id: state.defaultLevel,
-          security_classifications: [
-            { id: "c1", name: "Klass 1 · Öppen", description: null, security_level: 1 },
-            { id: "c2", name: "Klass 2 · Intern", description: null, security_level: 2 }
-          ]
-        },
-        response: new Response("{}")
-      })
+    GET: (path: string, init?: unknown) =>
+      path === "/api/v1/security-classifications/level-impact/"
+        ? impactRequest(init)
+        : Promise.resolve({
+            data: {
+              security_enabled: true,
+              default_user_security_classification_id: state.defaultLevel,
+              security_classifications: [
+                { id: "c1", name: "Klass 1 · Öppen", description: null, security_level: 1 },
+                { id: "c2", name: "Klass 2 · Intern", description: null, security_level: 2 }
+              ]
+            },
+            response: new Response("{}")
+          })
   }
 }));
 
 import { SecurityClassificationsPage } from "./classifications-page";
 
+beforeEach(() => {
+  impactRequest.mockImplementation(() =>
+    Promise.resolve({ data: impact, response: new Response("{}") })
+  );
+});
 afterEach(() => {
   cleanup();
   post.mockReset();
@@ -173,5 +191,35 @@ describe("SecurityClassificationsPage", () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
     expect(screen.getByRole("alertdialog")).toBe(dialog);
+  });
+
+  it("shows what a default level changes before it is saved", async () => {
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Klass 2 · Intern");
+
+    expect(await within(dialog).findByText("12 användare får ändrad säkerhetsnivå.")).toBeTruthy();
+    expect(within(dialog).getByText("3 personliga assistenter")).toBeTruthy();
+    expect(within(dialog).getByText("1 personlig tjänst")).toBeTruthy();
+    expect(within(dialog).queryByText(/personliga appar|personlig app/)).toBeNull();
+    expect(impactRequest).toHaveBeenCalledWith({
+      params: { query: { security_classification_id: "c2", user_group_id: undefined } }
+    });
+  });
+
+  it("warns when no model meets the chosen default level", async () => {
+    impactRequest.mockImplementation(() =>
+      Promise.resolve({
+        data: { ...impact, completion_models: 0 },
+        response: new Response("{}")
+      })
+    );
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Klass 2 · Intern");
+
+    expect(
+      await within(dialog).findByText(/Ingen tillgänglig AI-modell klarar den här nivån/)
+    ).toBeTruthy();
   });
 });

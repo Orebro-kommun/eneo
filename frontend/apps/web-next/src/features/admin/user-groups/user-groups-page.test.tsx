@@ -46,6 +46,17 @@ function serve(initial: Group[], directory = [anna, per, eva]) {
       return ok({ items, total_count: items.length, next_cursor: null });
     }
     if (path === "/api/v1/user-groups/{id}/") return ok({ ...groups[0], ...groupLevel });
+    if (path === "/api/v1/security-classifications/level-impact/")
+      return ok({
+        affected_users: 2,
+        assistants: 1,
+        apps: 0,
+        services: 0,
+        knowledge_sources: 0,
+        completion_models: 0,
+        embedding_models: 0,
+        transcription_models: 0
+      });
     if (path === "/api/v1/security-classifications/")
       return ok({
         security_enabled: true,
@@ -209,6 +220,15 @@ describe("AdminUserGroupsPage", () => {
     api.PUT.mockImplementation(() => ok({ ...economy, security_classification_id: "c2" }));
     fireEvent.click(level);
     fireEvent.click(await screen.findByRole("option", { name: "Intern" }));
+    // The preview is for this group, and warns that no model meets the level.
+    expect(await within(dialog).findByText("2 användare får ändrad säkerhetsnivå.")).toBeTruthy();
+    expect(within(dialog).getByText("1 personlig assistent")).toBeTruthy();
+    expect(
+      within(dialog).getByText(/Ingen tillgänglig AI-modell klarar den här nivån/)
+    ).toBeTruthy();
+    expect(api.GET).toHaveBeenCalledWith("/api/v1/security-classifications/level-impact/", {
+      params: { query: { security_classification_id: "c2", user_group_id: "g1" } }
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "Spara ändringar" }));
 
     await waitFor(() =>

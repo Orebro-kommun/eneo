@@ -7705,5 +7705,16 @@
   "user_group_security_level_title": "Säkerhetsnivå för {name}",
   "user_group_security_level_description": "Gruppens medlemmar arbetar på den här nivån i personlig chatt och med egna assistenter. Är en användare med i flera grupper gäller den strängaste nivån.",
   "user_group_no_security_level": "Ingen nivå",
-  "admin_user_groups_level_saved": "Säkerhetsnivån för {name} sparades"
+  "admin_user_groups_level_saved": "Säkerhetsnivån för {name} sparades",
+  "security_level_impact_users": "{count, plural, =0 {Ingen användare får ändrad säkerhetsnivå.} one {# användare får ändrad säkerhetsnivå.} other {# användare får ändrad säkerhetsnivå.}}",
+  "security_level_impact_stopped": "Hos dem slutar detta att fungera, eftersom modellen inte klarar nivån:",
+  "security_level_impact_assistants": "{count, plural, one {# personlig assistent} other {# personliga assistenter}}",
+  "security_level_impact_apps": "{count, plural, one {# personlig app} other {# personliga appar}}",
+  "security_level_impact_services": "{count, plural, one {# personlig tjänst} other {# personliga tjänster}}",
+  "security_level_impact_knowledge_sources": "{count, plural, one {# personlig kunskapskälla} other {# personliga kunskapskällor}}",
+  "security_level_impact_no_model": "Ingen tillgänglig AI-modell klarar den här nivån. Användarna kan då inte använda personlig chatt.",
+  "user_security_level": "Säkerhetsnivå",
+  "user_security_level_from_group": "{level}, från användargruppen {group}",
+  "user_security_level_from_default": "{level}, organisationens standardnivå",
+  "user_security_level_none": "Ingen säkerhetsnivå"
 }

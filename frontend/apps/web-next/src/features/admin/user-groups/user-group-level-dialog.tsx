@@ -11,6 +11,7 @@ import { browserApi } from "@/lib/api/browser";
 import { unwrap } from "@/lib/api/errors";
 import { toastApiError } from "@/lib/api/toast";
 import { toast } from "@/lib/toast";
+import { LevelImpact } from "@/features/admin/security-classifications/level-impact";
 import {
   highestFirst,
   securityClassificationsQueryOptions,
@@ -61,6 +62,7 @@ function LevelForm({
     <form
       id={formId}
       noValidate
+      className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (!save.isPending) save.mutate();
@@ -77,6 +79,9 @@ function LevelForm({
         onChange={(next) => setValue(next as string)}
         width="100%"
       />
+      {value !== (currentId ?? NO_LEVEL) && (
+        <LevelImpact classificationId={value === NO_LEVEL ? null : value} userGroupId={group.id} />
+      )}
     </form>
   );
 }

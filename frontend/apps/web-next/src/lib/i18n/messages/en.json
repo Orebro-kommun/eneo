@@ -7705,5 +7705,16 @@
   "user_group_security_level_title": "Security level for {name}",
   "user_group_security_level_description": "The group's members work at this level in personal chat and with their own assistants. For a user in several groups the strictest level applies.",
   "user_group_no_security_level": "No level",
-  "admin_user_groups_level_saved": "The security level for {name} was saved"
+  "admin_user_groups_level_saved": "The security level for {name} was saved",
+  "security_level_impact_users": "{count, plural, =0 {No user gets a changed security level.} one {# user gets a changed security level.} other {# users get a changed security level.}}",
+  "security_level_impact_stopped": "For them this stops working, because the model does not meet the level:",
+  "security_level_impact_assistants": "{count, plural, one {# personal assistant} other {# personal assistants}}",
+  "security_level_impact_apps": "{count, plural, one {# personal app} other {# personal apps}}",
+  "security_level_impact_services": "{count, plural, one {# personal service} other {# personal services}}",
+  "security_level_impact_knowledge_sources": "{count, plural, one {# personal knowledge source} other {# personal knowledge sources}}",
+  "security_level_impact_no_model": "No available AI model meets this level. The users will not be able to use personal chat.",
+  "user_security_level": "Security level",
+  "user_security_level_from_group": "{level}, from the user group {group}",
+  "user_security_level_from_default": "{level}, the organisation's default level",
+  "user_security_level_none": "No security level"
 }
