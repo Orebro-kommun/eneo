@@ -25,6 +25,10 @@ if TYPE_CHECKING:
     )
 
 
+class DefaultLevelWithoutModelException(BadRequestException):
+    code = "default_level_without_model"
+
+
 class SecurityClassificationService:
     """Service for managing security levels."""
 
@@ -169,7 +173,7 @@ class SecurityClassificationService:
             # Without this an unknown id fails on the foreign key.
             level = await self.get_security_classification(id)
             if not await self.impact_service.usable_completion_models(level):
-                raise BadRequestException(
+                raise DefaultLevelWithoutModelException(
                     "No available completion model meets this security "
                     "classification, so it cannot be the default user level."
                 )

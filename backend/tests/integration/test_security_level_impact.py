@@ -336,6 +336,7 @@ async def test_a_default_no_completion_model_meets_is_refused(
     )
 
     assert response.status_code == 400, response.text
+    assert response.json()["code"] == "default_level_without_model"
     async with db_container() as container:
         stored = await container.session().scalar(
             sa.select(Tenants.default_user_security_classification_id).where(

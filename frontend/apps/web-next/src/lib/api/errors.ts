@@ -282,7 +282,8 @@ const ERROR_REASON_MESSAGE_KEYS = new Map<string, string>([
   ["stream_error", "chat_answer_failed_internal"],
   ["model_below_user_security_level", "security_level_model_below"],
   ["space_below_user_security_level", "security_level_space_below"],
-  ["move_below_user_security_level", "security_level_move_below"]
+  ["move_below_user_security_level", "security_level_move_below"],
+  ["default_level_without_model", "security_level_default_without_model"]
 ]);
 
 export function getErrorMessageForReason(

@@ -7725,5 +7725,6 @@
   "security_level_impact_models": "Models that meet the level: {completion, plural, one {# completion model} other {# completion models}}, {embedding, plural, one {# embedding model} other {# embedding models}} and {transcription, plural, one {# transcription model} other {# transcription models}}.",
   "spaces_below_default_level": "Shared spaces below the default level",
   "spaces_below_default_level_description": "These spaces have a lower classification than the default level, or none. The default level does not change existing spaces. Open the space to change its classification.",
-  "spaces_below_default_level_unclassified": "No classification"
+  "spaces_below_default_level_unclassified": "No classification",
+  "security_level_default_without_model": "The default level cannot be saved, because no available AI model meets it. Classify a model at that level first."
 }

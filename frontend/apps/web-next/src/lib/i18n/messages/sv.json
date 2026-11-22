@@ -7725,5 +7725,6 @@
   "security_level_impact_models": "Modeller som klarar nivån: {completion, plural, one {# språkmodell} other {# språkmodeller}}, {embedding, plural, one {# embeddingmodell} other {# embeddingmodeller}} och {transcription, plural, one {# transkriberingsmodell} other {# transkriberingsmodeller}}.",
   "spaces_below_default_level": "Delade ytor under standardnivån",
   "spaces_below_default_level_description": "De här ytorna har en lägre klassificering än standardnivån, eller ingen. Standardnivån ändrar inte befintliga ytor. Öppna ytan för att ändra dess klassificering.",
-  "spaces_below_default_level_unclassified": "Ingen klassificering"
+  "spaces_below_default_level_unclassified": "Ingen klassificering",
+  "security_level_default_without_model": "Standardnivån kan inte sparas, eftersom ingen tillgänglig AI-modell klarar den. Klassa en modell på den nivån först."
 }
