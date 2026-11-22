@@ -1,0 +1,99 @@
+# Security Levels for Users
+
+import { Callout } from "nextra/components";
+
+A security level decides which AI models a person may use for their own work. It builds on the security classifications you already have: the level is one of your classifications, and a person with a level can only use models and MCP servers classified at that level or higher.
+
+Without a level, a person can use every model in their personal space and can create shared spaces without a classification. With a level, that is no longer possible.
+
+<Callout type="info">
+  The settings in this guide are in the React interface (web-next). Nothing
+  changes when you upgrade: all levels are empty until an administrator sets
+  one.
+</Callout>
+
+## Where a level applies
+
+A person's level applies outside shared spaces:
+
+- **The personal space.** Personal chat, and the person's own assistants, apps, services and knowledge sources, only offer and use models that meet the level.
+- **New shared spaces.** A shared space starts at its creator's level, with only the models that meet it.
+- **Changing a shared space.** A space administrator cannot set the space's classification below their own level. They can raise it.
+- **Moving an assistant** out of the personal space to a shared space below the person's level is refused.
+
+Inside a shared space, the space's own classification governs. A member with a higher level can work there with the models the space allows.
+
+Organisation administrators are exempt from the rules about shared spaces, so they can always correct a space. Their own personal space still follows their level.
+
+## How a person gets a level
+
+1. **From a user group.** If the person is a member of one or more groups that have a level, the strictest of them applies.
+2. **From the organisation's default level**, if no group gives one.
+3. **Otherwise the person has no level.**
+
+The default level is a fallback, not a minimum: a group may have a lower level than the default, and then the group's level applies to its members.
+
+A change takes effect at once. When a person is added to or removed from a group, their personal space follows at the next request. Shared spaces they created keep their classification.
+
+## Before you start
+
+Classify your models and MCP servers first. This is the step that matters most:
+
+- A model **without a classification** is blocked for everyone who has a level.
+- Without a classified **embedding model**, knowledge sources in personal spaces stop working.
+- A default level cannot be saved if no available completion model meets it.
+
+Then try the level on a small group before you set a default for everyone.
+
+## Set the default level
+
+1. Go to **Admin → Security classifications**. Classification must be enabled.
+2. Choose a level under **Default level for users**.
+3. Read the preview and confirm.
+
+Choose **No default level** to remove it.
+
+## Set a level on a user group
+
+1. Go to **Admin → User groups**.
+2. Open the group's menu and choose **Security level**.
+3. Choose a level, read the preview and save.
+
+Every group can have a level, including groups provisioned through SCIM. The level belongs to Eneo: an update of the group from your identity provider does not change it. If the identity provider deletes a group and creates one with a new name, the new group has no level, and its members fall back to the default level until you set one.
+
+## Read the preview
+
+Before a level is saved, Eneo shows what it changes:
+
+- how many models meet the level, with a warning when no completion model does;
+- how many users get a changed level;
+- how many of their personal assistants, apps, services and knowledge sources stop working because their model does not meet the level.
+
+Personal apps and services that are called through the API are counted too. They stop working like the rest.
+
+The preview does not count MCP servers.
+
+## Find existing shared spaces below the default
+
+Setting a level never changes an existing shared space. Under **Shared spaces below the default level** on the same page, you see the shared spaces that have a lower classification than the default level, or none. Open a space from the list to change its classification.
+
+## See a user's level
+
+Open a user under **Admin → Users**. The editor shows the user's level and whether it comes from a user group or the organisation's default.
+
+## What users notice
+
+- Their personal space shows its level next to the space name.
+- Models below the level are not offered. The personal assistant moves to a model that meets the level by itself.
+- Asking an assistant, or running an app or a service, whose model is below the level is refused with a message that says so. The person chooses another model in the assistant's settings.
+- In a space's settings, classifications below the person's own level cannot be chosen.
+
+## Turning classification off
+
+If you disable security classifications, levels stop applying. The values are kept and apply again when you enable classifications.
+
+A classification that is used as the default level or by a user group cannot be deleted until you have removed it there.
+
+## Audit log
+
+Changes of the default level and of a group's level are written to the audit log, with the old and the new value.
