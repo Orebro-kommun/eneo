@@ -774,6 +774,26 @@ describe("ChatView with nobody to answer", () => {
     }
   );
 
+  it("names the user's security level when no model meets it in the personal space", () => {
+    spies.mode = "answer";
+    renderInApp(
+      <Harness
+        chatPartner={{
+          ...partner,
+          completionModel: null,
+          personalSpace: true,
+          securityClassification: "Konfidentiell"
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        "Ingen AI-modell klarar din säkerhetsnivå (Konfidentiell). Kontakta din administratör."
+      )
+    ).toBeTruthy();
+  });
+
   it.each([
     ["the assistant loses its model", partner, { ...partner, completionModel: null }],
     [

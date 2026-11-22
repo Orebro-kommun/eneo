@@ -119,7 +119,8 @@ class ResourceMoverService:
         ):
             raise UnauthorizedException(
                 "An assistant cannot be moved from your personal space to a "
-                "space below your security level."
+                "space below your security level.",
+                code="move_below_user_security_level",
             )
 
         assistant = source_space.get_assistant(assistant_id)

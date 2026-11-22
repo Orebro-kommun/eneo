@@ -747,6 +747,12 @@ function ConversationView({
     };
   }
 
+  // In the personal space the user's level is what leaves no model to answer with.
+  const noModelMessage =
+    partner.personalSpace && partner.securityClassification
+      ? t("security_level_no_model", { level: partner.securityClassification })
+      : t("no_completion_model_description");
+
   /**
    * Sends a question; `resendFiles` repeats a failed question's attachments
    * ("Försök igen"), which leave the composer if they were put back there.
@@ -760,7 +766,7 @@ function ConversationView({
       // A retry after the partner lost its model or members: said at the
       // composer as its own send says it, the draft and files left there.
       (started ? dockTextareaRef.current : startTextarea())?.focus();
-      announce(t("no_completion_model_description"));
+      announce(noModelMessage);
       return;
     }
     // A quote from a file or a view opens the question; it is sent once.
@@ -1067,7 +1073,7 @@ function ConversationView({
     onChange: setInput,
     onSubmit: () => sendQuestion(input.trim(), undefined, true),
     sendBlocked,
-    unavailable: partnerCannotAnswer(partner) ? t("no_completion_model_description") : null,
+    unavailable: partnerCannotAnswer(partner) ? noModelMessage : null,
     busy: sending,
     // A stop while the question still waits for its uploads or a partner save takes it back.
     onStop: () => (pendingAbort.current ? pendingAbort.current.abort() : void stop()),

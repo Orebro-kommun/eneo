@@ -131,3 +131,4 @@ async def test_asking_a_personal_assistant_below_the_level_says_why(
         response.json()["eneo_error_code"]
         == ErrorCodes.SECURITY_CLASSIFICATION_MISMATCH
     )
+    assert response.json()["code"] == "model_below_user_security_level"

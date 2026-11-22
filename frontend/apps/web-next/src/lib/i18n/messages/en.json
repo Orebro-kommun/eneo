@@ -7717,5 +7717,9 @@
   "user_security_level_from_group": "{level}, from the user group {group}",
   "user_security_level_from_default": "{level}, the organisation's default level",
   "user_security_level_none": "No security level",
-  "space_security_own_level_hint": "You cannot choose a classification below your own security level ({name})."
+  "space_security_own_level_hint": "You cannot choose a classification below your own security level ({name}).",
+  "security_level_model_below": "The model does not meet your security level. Choose another model or contact your administrator.",
+  "security_level_space_below": "The space's security classification cannot be set below your own security level.",
+  "security_level_move_below": "The assistant cannot be moved from your personal space to a space below your security level.",
+  "security_level_no_model": "No AI model meets your security level ({level}). Contact your administrator."
 }

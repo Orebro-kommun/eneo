@@ -433,7 +433,8 @@ class SpaceService:
             ):
                 raise UnauthorizedException(
                     "The space's security classification cannot be set below "
-                    "your own security level."
+                    "your own security level.",
+                    code="space_below_user_security_level",
                 )
 
         completion_models: list["CompletionModel"] | None = None

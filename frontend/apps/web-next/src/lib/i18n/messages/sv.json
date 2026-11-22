@@ -7717,5 +7717,9 @@
   "user_security_level_from_group": "{level}, från användargruppen {group}",
   "user_security_level_from_default": "{level}, organisationens standardnivå",
   "user_security_level_none": "Ingen säkerhetsnivå",
-  "space_security_own_level_hint": "Du kan inte välja en klassificering under din egen säkerhetsnivå ({name})."
+  "space_security_own_level_hint": "Du kan inte välja en klassificering under din egen säkerhetsnivå ({name}).",
+  "security_level_model_below": "Modellen klarar inte din säkerhetsnivå. Välj en annan modell eller kontakta din administratör.",
+  "security_level_space_below": "Ytans säkerhetsklassificering kan inte sättas under din egen säkerhetsnivå.",
+  "security_level_move_below": "Assistenten kan inte flyttas från din personliga yta till en yta under din säkerhetsnivå.",
+  "security_level_no_model": "Ingen AI-modell klarar din säkerhetsnivå ({level}). Kontakta din administratör."
 }

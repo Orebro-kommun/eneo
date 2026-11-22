@@ -94,7 +94,7 @@ async def test_move_from_personal_space_follows_the_users_level(
     refused = await _transfer(client, headers, assistant_id, unclassified)
 
     assert refused.status_code == 403, refused.text
-    assert "below your security level" in refused.text
+    assert refused.json()["code"] == "move_below_user_security_level"
     assert await _space_of(db_container, assistant_id) == personal
 
     allowed = await _transfer(client, headers, assistant_id, at_level)

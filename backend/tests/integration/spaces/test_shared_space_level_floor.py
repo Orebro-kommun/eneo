@@ -83,7 +83,7 @@ async def test_administrator_may_raise_and_lower_to_their_own_level_but_not_belo
 
     for refused in (below, removed):
         assert refused.status_code == 403, refused.text
-        assert "below your own security level" in refused.text
+        assert refused.json()["code"] == "space_below_user_security_level"
     assert await _stored_level(db_container, space_id) == levels["high"]
 
 

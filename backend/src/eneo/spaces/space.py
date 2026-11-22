@@ -538,7 +538,8 @@ class Space:
         ):
             raise SecurityClassificationMismatchException(
                 "The selected AI model does not meet your security level. "
-                "Please choose a different model or contact your administrator."
+                "Please choose a different model or contact your administrator.",
+                code="model_below_user_security_level",
             )
 
     def can_ask_assistant(

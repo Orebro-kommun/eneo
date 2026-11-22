@@ -512,7 +512,9 @@ class KnowledgeModelUnavailableException(Exception):
 class SecurityClassificationMismatchException(Exception):
     """Raised when a resource does not meet the space's security classification."""
 
-    pass
+    def __init__(self, message: str = "", *, code: str | None = None):
+        super().__init__(message)
+        self.code = code
 
 
 class MCPClientError(Exception):
