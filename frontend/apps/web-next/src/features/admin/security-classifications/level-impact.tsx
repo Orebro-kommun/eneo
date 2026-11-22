@@ -65,6 +65,15 @@ export function LevelImpact({
                 title={t("security_level_impact_no_model")}
               />
             ) : null}
+            {classificationId !== null ? (
+              <p>
+                {t("security_level_impact_models", {
+                  completion: data.completion_models,
+                  embedding: data.embedding_models,
+                  transcription: data.transcription_models
+                })}
+              </p>
+            ) : null}
             <p>{t("security_level_impact_users", { count: data.affected_users })}</p>
             {stopped.length > 0 ? (
               <>

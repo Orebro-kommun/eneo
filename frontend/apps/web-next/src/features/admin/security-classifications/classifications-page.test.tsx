@@ -200,6 +200,11 @@ describe("SecurityClassificationsPage", () => {
 
     expect(await within(dialog).findByText("12 användare får ändrad säkerhetsnivå.")).toBeTruthy();
     expect(within(dialog).getByText("3 personliga assistenter")).toBeTruthy();
+    expect(
+      within(dialog).getByText(
+        "Modeller som klarar nivån: 2 språkmodeller, 1 embeddingmodell och 0 transkriberingsmodeller."
+      )
+    ).toBeTruthy();
     expect(within(dialog).getByText("1 personlig tjänst")).toBeTruthy();
     expect(within(dialog).queryByText(/personliga appar|personlig app/)).toBeNull();
     expect(impactRequest).toHaveBeenCalledWith({

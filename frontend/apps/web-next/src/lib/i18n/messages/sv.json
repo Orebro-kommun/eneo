@@ -7721,5 +7721,6 @@
   "security_level_model_below": "Modellen klarar inte din säkerhetsnivå. Välj en annan modell eller kontakta din administratör.",
   "security_level_space_below": "Ytans säkerhetsklassificering kan inte sättas under din egen säkerhetsnivå.",
   "security_level_move_below": "Assistenten kan inte flyttas från din personliga yta till en yta under din säkerhetsnivå.",
-  "security_level_no_model": "Ingen AI-modell klarar din säkerhetsnivå ({level}). Kontakta din administratör."
+  "security_level_no_model": "Ingen AI-modell klarar din säkerhetsnivå ({level}). Kontakta din administratör.",
+  "security_level_impact_models": "Modeller som klarar nivån: {completion, plural, one {# språkmodell} other {# språkmodeller}}, {embedding, plural, one {# embeddingmodell} other {# embeddingmodeller}} och {transcription, plural, one {# transkriberingsmodell} other {# transkriberingsmodeller}}."
 }
