@@ -1,0 +1,104 @@
+---
+title: Säkerhetsnivå för användare
+translationSource: guides/security-levels.mdx@728929d9c097
+---
+
+# Säkerhetsnivå för användare
+
+import { Callout } from "nextra/components";
+
+En säkerhetsnivå avgör vilka AI-modeller en person får använda i sitt eget arbete. Den bygger på de säkerhetsklassificeringar ni redan har: nivån är en av era klassificeringar, och en person med en nivå kan bara använda modeller och MCP-servrar som är klassade på den nivån eller högre.
+
+Utan nivå kan en person använda alla modeller i sin personliga yta och skapa delade ytor utan klassificering. Med en nivå går det inte längre.
+
+<Callout type="info">
+  Inställningarna i den här guiden finns i React-gränssnittet (web-next). Inget
+  ändras vid uppgradering: alla nivåer är tomma tills en administratör sätter
+  en.
+</Callout>
+
+## Var en nivå gäller
+
+En persons nivå gäller utanför delade ytor:
+
+- **Den personliga ytan.** Personlig chatt och personens egna assistenter, appar, tjänster och kunskapskällor erbjuder och använder bara modeller som klarar nivån.
+- **Nya delade ytor.** En delad yta startar på skaparens nivå, med bara de modeller som klarar den.
+- **Ändra en delad yta.** En administratör för ytan kan inte sätta ytans klassificering under sin egen nivå. Hen kan höja den.
+- **Flytt av en assistent** från den personliga ytan till en delad yta under personens nivå nekas.
+
+Inne i en delad yta gäller ytans egen klassificering. En medlem med högre nivå kan arbeta där med de modeller ytan tillåter.
+
+Organisationens administratörer är undantagna från reglerna om delade ytor, så att de alltid kan rätta en yta. Deras egen personliga yta följer ändå deras nivå.
+
+## Så får en person sin nivå
+
+1. **Från en användargrupp.** Är personen med i en eller flera grupper som har en nivå gäller den strängaste av dem.
+2. **Från organisationens standardnivå**, om ingen grupp ger en.
+3. **Annars har personen ingen nivå.**
+
+Standardnivån är en reserv, inte ett minimum: en grupp kan ha en lägre nivå än standardnivån, och då gäller gruppens nivå för medlemmarna.
+
+En ändring gäller direkt. När en person läggs till i eller tas bort ur en grupp följer den personliga ytan med vid nästa anrop. Delade ytor som personen har skapat behåller sin klassificering.
+
+## Innan ni börjar
+
+Klassa era modeller och MCP-servrar först. Det är det viktigaste steget:
+
+- En modell **utan klassificering** spärras för alla som har en nivå.
+- Utan en klassad **embeddingmodell** slutar kunskapskällor i personliga ytor att fungera.
+- En standardnivå går inte att spara om ingen tillgänglig språkmodell klarar den.
+
+Prova sedan nivån på en liten grupp innan ni sätter en standardnivå för alla.
+
+## Sätt standardnivån
+
+1. Gå till **Admin → Säkerhetsklassificeringar**. Klassificering måste vara aktiverad.
+2. Välj en nivå under **Standardnivå för användare**.
+3. Läs förhandsvisningen och bekräfta.
+
+Välj **Ingen standardnivå** för att ta bort den.
+
+## Sätt en nivå på en användargrupp
+
+1. Gå till **Admin → Användargrupper**.
+2. Öppna gruppens meny och välj **Säkerhetsnivå**.
+3. Välj en nivå, läs förhandsvisningen och spara.
+
+Alla grupper kan ha en nivå, även grupper som provisioneras via SCIM. Nivån ägs av Eneo: en uppdatering av gruppen från er identitetsleverantör ändrar den inte. Tar identitetsleverantören bort en grupp och skapar en med nytt namn har den nya gruppen ingen nivå, och medlemmarna hamnar på standardnivån tills ni sätter en.
+
+## Läs förhandsvisningen
+
+Innan en nivå sparas visar Eneo vad den ändrar:
+
+- hur många modeller som klarar nivån, med en varning när ingen språkmodell gör det;
+- hur många användare som får ändrad nivå;
+- hur många av deras personliga assistenter, appar, tjänster och kunskapskällor som slutar fungera eftersom modellen inte klarar nivån.
+
+Personliga appar och tjänster som anropas via API:t räknas också. De slutar fungera som de övriga.
+
+Förhandsvisningen räknar inte MCP-servrar.
+
+## Hitta befintliga delade ytor under standardnivån
+
+En nivå ändrar aldrig en befintlig delad yta. Under **Delade ytor under standardnivån** på samma sida ser ni de delade ytor som har en lägre klassificering än standardnivån, eller ingen. Öppna en yta från listan för att ändra dess klassificering.
+
+## Se en användares nivå
+
+Öppna en användare under **Admin → Användare**. Där visas användarens nivå och om den kommer från en användargrupp eller från organisationens standardnivå.
+
+## Vad användarna märker
+
+- Den personliga ytan visar sin nivå bredvid ytans namn.
+- Modeller under nivån erbjuds inte. Den personliga assistenten byter själv till en modell som klarar nivån.
+- Att fråga en assistent, eller köra en app eller en tjänst, vars modell ligger under nivån nekas med ett meddelande som säger det. Personen väljer en annan modell i assistentens inställningar.
+- I en ytas inställningar går det inte att välja klassificeringar under den egna nivån.
+
+## Stänga av klassificering
+
+Om ni inaktiverar säkerhetsklassificeringar slutar nivåerna att gälla. Värdena sparas och gäller igen när ni aktiverar klassificeringarna.
+
+En klassificering som används som standardnivå eller av en användargrupp kan inte tas bort förrän ni har tagit bort den där.
+
+## Granskningslogg
+
+Ändringar av standardnivån och av en grupps nivå skrivs till granskningsloggen, med det gamla och det nya värdet.

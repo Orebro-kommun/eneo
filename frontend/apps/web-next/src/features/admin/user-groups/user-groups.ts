@@ -25,6 +25,14 @@ export function userGroupsQueryOptions(api: EneoClient) {
   });
 }
 
+/** One group as an administrator reads it, with the security level the list leaves out. */
+export function userGroupLevelQueryOptions(api: EneoClient, id: string) {
+  return queryOptions({
+    queryKey: [...USER_GROUPS_KEY, id],
+    queryFn: () => unwrap(api.GET("/api/v1/user-groups/{id}/", { params: { path: { id } } }))
+  });
+}
+
 /** The organisation's users whose e-mail matches `email` (all without one), a page at a time. */
 export function memberCandidatesQueryOptions(api: EneoClient, email: string) {
   return infiniteQueryOptions({

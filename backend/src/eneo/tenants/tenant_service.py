@@ -655,3 +655,19 @@ class TenantService:
 
         tenant_update = TenantUpdate(id=tenant_id, security_enabled=enabled)
         return await self.repo.update_tenant(tenant_update)
+
+    async def set_default_user_security_classification(
+        self,
+        tenant_id: UUID,
+        classification_id: UUID | None,
+    ) -> TenantInDB:
+        """Set the level users work at by default; None clears it."""
+        tenant = await self.repo.get(tenant_id)
+        self._validate(tenant, tenant_id)
+
+        return await self.repo.update_tenant(
+            TenantUpdate(
+                id=tenant_id,
+                default_user_security_classification_id=classification_id,
+            )
+        )

@@ -747,6 +747,17 @@ function ConversationView({
     };
   }
 
+  // In the personal space the user's level is what leaves no model to answer with.
+  const noModelMessage =
+    partner.personalSpace && partner.securityClassification
+      ? t("security_level_no_model", { level: partner.securityClassification })
+      : t("no_completion_model_description");
+  const cannotAnswerMessage = partner.modelBelowLevel
+    ? t("security_level_assistant_model_below", { level: partner.securityClassification ?? "" })
+    : partnerCannotAnswer(partner)
+      ? noModelMessage
+      : null;
+
   /**
    * Sends a question; `resendFiles` repeats a failed question's attachments
    * ("Försök igen"), which leave the composer if they were put back there.
@@ -756,11 +767,11 @@ function ConversationView({
    */
   function sendQuestion(question: string, resendFiles?: SentFiles, fromComposer = false) {
     if (!question || sending || usage.willExceedContext) return;
-    if (partnerCannotAnswer(partner)) {
+    if (cannotAnswerMessage) {
       // A retry after the partner lost its model or members: said at the
       // composer as its own send says it, the draft and files left there.
       (started ? dockTextareaRef.current : startTextarea())?.focus();
-      announce(t("no_completion_model_description"));
+      announce(cannotAnswerMessage);
       return;
     }
     // A quote from a file or a view opens the question; it is sent once.
@@ -1067,7 +1078,7 @@ function ConversationView({
     onChange: setInput,
     onSubmit: () => sendQuestion(input.trim(), undefined, true),
     sendBlocked,
-    unavailable: partnerCannotAnswer(partner) ? t("no_completion_model_description") : null,
+    unavailable: cannotAnswerMessage,
     busy: sending,
     // A stop while the question still waits for its uploads or a partner save takes it back.
     onStop: () => (pendingAbort.current ? pendingAbort.current.abort() : void stop()),

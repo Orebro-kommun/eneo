@@ -25,6 +25,7 @@ const swedishTitles: Readonly<Record<string, string>> = {
   "/guides/scim-provisioning": "Provisionering med SCIM",
   "/guides/audit-logging": "Granskningsloggning",
   "/guides/data-retention": "Gallring",
+  "/guides/security-levels": "Säkerhetsnivå för användare",
   "/guides/skills": "Färdigheter",
   "/guides/ai-providers": "Konfigurera AI-leverantörer",
   "/guides/mcp-servers": "MCP-servrar",

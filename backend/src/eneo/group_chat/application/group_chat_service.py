@@ -503,6 +503,13 @@ class GroupChatService:
 
             assistant_to_ask = tool_assistant_id
         else:
+            # The first assistant's model reads the question to pick who answers.
+            space = await self.space_service.get_space_by_group_chat(
+                group_chat_id=group_chat_id
+            )
+            space.check_personal_level(
+                group_chat.assistants[0].assistant.completion_model
+            )
             # select the best assistant based on the question using the completion model
             # including conversation history
             selection_result = await self._select_assistant_with_completion_model(

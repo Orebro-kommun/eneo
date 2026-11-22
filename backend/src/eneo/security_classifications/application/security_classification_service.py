@@ -12,13 +12,21 @@ from eneo.roles.permissions import Permission, validate_permissions
 from eneo.security_classifications.domain.entities.security_classification import (
     SecurityClassification,
 )
+from eneo.tenants.tenant import TenantInDB
 from eneo.tenants.tenant_service import TenantService
 from eneo.users.user import UserInDB
 
 if TYPE_CHECKING:
+    from eneo.security_classifications.application.security_level_impact_service import (  # noqa: E501
+        SecurityLevelImpactService,
+    )
     from eneo.security_classifications.domain.repositories.security_classification_repo_impl import (  # noqa: E501
         SecurityClassificationRepoImpl,
     )
+
+
+class DefaultLevelWithoutModelException(BadRequestException):
+    code = "default_level_without_model"
 
 
 class SecurityClassificationService:
@@ -29,11 +37,13 @@ class SecurityClassificationService:
         user: UserInDB,
         repo: "SecurityClassificationRepoImpl",
         tenant_service: TenantService,
+        impact_service: "SecurityLevelImpactService",
     ) -> None:
         super().__init__()
         self.user = user
         self.repo = repo
         self.tenant_service = tenant_service
+        self.impact_service = impact_service
 
     @validate_permissions(Permission.ADMIN)
     async def create_security_classification(
@@ -154,6 +164,21 @@ class SecurityClassificationService:
         return await self.tenant_service.toggle_security(
             tenant_id=self.user.tenant_id,
             enabled=enabled,
+        )
+
+    @validate_permissions(Permission.ADMIN)
+    async def set_default_user_classification(self, id: UUID | None) -> TenantInDB:
+        """Set the level users work at by default; None clears it."""
+        if id is not None:
+            # Without this an unknown id fails on the foreign key.
+            level = await self.get_security_classification(id)
+            if not await self.impact_service.usable_completion_models(level):
+                raise DefaultLevelWithoutModelException(
+                    "No available completion model meets this security "
+                    "classification, so it cannot be the default user level."
+                )
+        return await self.tenant_service.set_default_user_security_classification(
+            tenant_id=self.user.tenant_id, classification_id=id
         )
 
     @validate_permissions(Permission.ADMIN)

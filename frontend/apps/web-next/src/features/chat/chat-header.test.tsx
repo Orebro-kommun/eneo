@@ -88,6 +88,16 @@ describe("ChatHeader", () => {
     expect(screen.getAllByRole("button", { name: DESKTOP_SWITCHER })).toHaveLength(1);
   });
 
+  it("marks an assistant whose model is below the user's security level", () => {
+    renderHeader({ partner: { ...partner, modelBelowLevel: true } });
+    expect(screen.getByText("Modellen klarar inte nivån")).toBeTruthy();
+  });
+
+  it("shows no such mark otherwise", () => {
+    renderHeader();
+    expect(screen.queryByText("Modellen klarar inte nivån")).toBeNull();
+  });
+
   it("shows a fixed model under the partner's name from 1024px", () => {
     renderHeader();
     expect(screen.getAllByText("Upphandling · Claude Haiku 4.5")).toHaveLength(1);

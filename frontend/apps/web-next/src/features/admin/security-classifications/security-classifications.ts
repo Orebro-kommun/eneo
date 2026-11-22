@@ -16,6 +16,15 @@ export function securityClassificationsQueryOptions(api: EneoClient) {
   });
 }
 
+/** Shared spaces below the default user level; empty when no default is set. */
+export function spacesBelowDefaultQueryOptions(api: EneoClient) {
+  return queryOptions({
+    queryKey: [...SECURITY_CLASSIFICATIONS_KEY, "spaces-below-default"],
+    queryFn: async () =>
+      (await unwrap(api.GET("/api/v1/security-classifications/spaces-below-default/"))).items
+  });
+}
+
 /**
  * The backend returns classifications least-secure first (security_level
  * ascending); the UI lists them highest-secure first.

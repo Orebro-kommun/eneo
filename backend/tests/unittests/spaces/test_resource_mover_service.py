@@ -14,7 +14,10 @@ OTHER_TENANT_ID = uuid4()
 
 
 def _user(tenant_id: UUID = TENANT_ID) -> MagicMock:
-    return MagicMock(id=uuid4(), tenant_id=tenant_id)
+    # No security level: a mock tenant would otherwise give a mock floor.
+    return MagicMock(
+        id=uuid4(), tenant_id=tenant_id, tenant=MagicMock(security_enabled=False)
+    )
 
 
 def _space(tenant_id: UUID = TENANT_ID) -> MagicMock:

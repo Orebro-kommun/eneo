@@ -87,6 +87,7 @@ from eneo.main.exceptions import (
 )
 from eneo.main.logging import get_logger
 from eneo.mcp_servers.domain.entities.mcp_server import GENERAL_PURPOSE
+from eneo.security_classifications.domain.effective_level import security_floor_for
 from eneo.spaces.api.space_models import SpaceGroupMember, SpaceMember, SpaceRoleValue
 from eneo.spaces.space import Space
 from eneo.spaces.space_applications_projection import SpaceApplicationsProjection
@@ -1276,6 +1277,12 @@ class SpaceRepository:
             services_in_db=services,
             integration_knowledge_in_db=integration_knowledge_union,
             security_classification=entry_in_db.security_classification,
+            # self.user is the owner: nobody else has a role in a personal space.
+            floor=(
+                await security_floor_for(self.session, self.user)
+                if entry_in_db.user_id is not None
+                else None
+            ),
         )
         from eneo.mcp_servers.application.capability_resolver import (
             active_capability_providers,
@@ -1359,6 +1366,11 @@ class SpaceRepository:
                 tenant_id=space.tenant_id,
                 user_id=space.user_id,
                 tenant_space_id=space.tenant_space_id,
+                security_classification_id=(
+                    space.security_classification.id
+                    if space.security_classification
+                    else None
+                ),
             )
             .returning(Spaces)
         )

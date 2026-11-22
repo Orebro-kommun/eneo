@@ -774,6 +774,47 @@ describe("ChatView with nobody to answer", () => {
     }
   );
 
+  it("names the user's security level when no model meets it in the personal space", () => {
+    spies.mode = "answer";
+    renderInApp(
+      <Harness
+        chatPartner={{
+          ...partner,
+          completionModel: null,
+          personalSpace: true,
+          securityClassification: "Konfidentiell"
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        "Ingen AI-modell klarar din säkerhetsnivå (Konfidentiell). Kontakta din administratör."
+      )
+    ).toBeTruthy();
+  });
+
+  it("says at the field that the assistant's model is below the level, and sends nothing", () => {
+    spies.mode = "answer";
+    renderInApp(
+      <Harness
+        chatPartner={{
+          ...partner,
+          personalSpace: true,
+          securityClassification: "Medelhög",
+          modelBelowLevel: true
+        }}
+      />
+    );
+    const notice =
+      "Assistentens modell klarar inte din säkerhetsnivå (Medelhög). Välj en annan modell i assistentens inställningar.";
+
+    expect(screen.getByText(notice)).toBeTruthy();
+    ask("Vilken gräns gäller?");
+    expect(spies.sent).toHaveLength(0);
+    expect(spies.announce).toHaveBeenCalledWith(notice);
+  });
+
   it.each([
     ["the assistant loses its model", partner, { ...partner, completionModel: null }],
     [

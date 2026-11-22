@@ -17,6 +17,8 @@ from eneo.authentication.endpoint_access import (
 from eneo.main.container.container import Container
 from eneo.roles.permissions import Permission
 from eneo.security_classifications.presentation.security_classification_models import (
+    DefaultUserClassificationRequest,
+    DefaultUserClassificationResponse,
     SecurityClassificationCreatePublic,
     SecurityClassificationLevelsUpdateRequest,
     SecurityClassificationPublic,
@@ -25,6 +27,9 @@ from eneo.security_classifications.presentation.security_classification_models i
     SecurityClassificationsListPublic,
     SecurityEnableRequest,
     SecurityEnableResponse,
+    SecurityLevelImpactPublic,
+    SpaceBelowDefaultLevel,
+    SpacesBelowDefaultLevelResponse,
 )
 from eneo.server.dependencies.container import get_container
 from eneo.server.protocol import responses
@@ -129,7 +134,61 @@ async def list_security_classifications(
 
     return SecurityClassificationResponse(
         security_enabled=user.tenant.security_enabled,
+        default_user_security_classification_id=(
+            user.tenant.default_user_security_classification_id
+        ),
         security_classifications=scs,
+    )
+
+
+@router.get(
+    "/level-impact/",
+    response_model=SecurityLevelImpactPublic,
+    description=(
+        "What would change if the classification were saved as the level of a "
+        "user group, or as the default user level when no group is given. "
+        "Leave the classification out to preview clearing the level."
+    ),
+    responses=responses.get_responses([403, 404]),
+)
+@endpoint_access(
+    authentication=Authentication.USER,
+    authorization=Permission.ADMIN,
+    reason="Previewing a user level requires the admin permission.",
+)
+async def preview_security_level_impact(
+    container: ContainerDep,
+    security_classification_id: UUID | None = None,
+    user_group_id: UUID | None = None,
+) -> SecurityLevelImpactPublic:
+    impact = await container.security_level_impact_service().preview(
+        security_classification_id, user_group_id
+    )
+    return SecurityLevelImpactPublic.model_validate(impact)
+
+
+@router.get(
+    "/spaces-below-default/",
+    response_model=SpacesBelowDefaultLevelResponse,
+    description=(
+        "Shared spaces whose classification is below the default user level, "
+        "or that have none. Empty when no default level is set."
+    ),
+    responses=responses.get_responses([403]),
+)
+@endpoint_access(
+    authentication=Authentication.USER,
+    authorization=Permission.ADMIN,
+    reason="Listing spaces below the default level requires the admin permission.",
+)
+async def list_spaces_below_default_level(
+    container: ContainerDep,
+) -> SpacesBelowDefaultLevelResponse:
+    spaces = (
+        await container.security_level_impact_service().spaces_below_default_level()
+    )
+    return SpacesBelowDefaultLevelResponse(
+        items=[SpaceBelowDefaultLevel.model_validate(space) for space in spaces]
     )
 
 
@@ -435,4 +494,56 @@ async def toggle_security_classifications(
             tenant_id=tenant.id,
             security_enabled=tenant.security_enabled,
         )
+    )
+
+
+@router.put(
+    "/default-user-level/",
+    response_model=DefaultUserClassificationResponse,
+    description=(
+        "Set the security classification users work at by default. "
+        "Send null to clear it."
+    ),
+    responses=responses.get_responses([400, 403, 404]),
+)
+@endpoint_access(
+    authentication=Authentication.USER,
+    authorization=Permission.ADMIN,
+    reason="Changing the default user level requires the admin permission.",
+)
+async def set_default_user_classification(
+    request: DefaultUserClassificationRequest,
+    container: ContainerDep,
+) -> DefaultUserClassificationResponse:
+    service = container.security_classification_service()
+    user = container.user()
+    old = user.tenant.default_user_security_classification_id
+
+    tenant = await service.set_default_user_classification(
+        request.security_classification.id if request.security_classification else None
+    )
+    new = tenant.default_user_security_classification_id
+
+    audit_service = container.audit_service()
+    await audit_service.log_async(
+        tenant_id=user.tenant_id,
+        user=user,
+        action=ActionType.TENANT_SETTINGS_UPDATED,
+        entity_type=EntityType.TENANT_SETTINGS,
+        entity_id=user.tenant_id,
+        description="Updated the default user security level",
+        metadata=AuditMetadata.standard(
+            actor=user,
+            target=tenant,
+            changes={
+                "default_user_security_classification_id": {
+                    "old": str(old) if old else None,
+                    "new": str(new) if new else None,
+                }
+            },
+        ),
+    )
+
+    return DefaultUserClassificationResponse(
+        default_user_security_classification_id=new
     )

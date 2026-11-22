@@ -328,6 +328,9 @@ from eneo.scim.services.token_service import ScimTokenService
 from eneo.security_classifications.application.security_classification_service import (
     SecurityClassificationService,
 )
+from eneo.security_classifications.application.security_level_impact_service import (
+    SecurityLevelImpactService,
+)
 from eneo.security_classifications.domain.repositories.security_classification_repo_impl import (
     SecurityClassificationRepoImpl,
 )
@@ -1083,11 +1086,20 @@ class Container(containers.DeclarativeContainer):
         role_repo=role_repo,
         audit_service=audit_service,
     )
+    security_level_impact_service = providers.Factory(
+        SecurityLevelImpactService,
+        user=user,
+        repo=security_classification_repo,
+        completion_model_crud_service=completion_model_crud_service,
+        embedding_model_crud_service=embedding_model_crud_service,
+        transcription_model_crud_service=transcription_model_crud_service,
+    )
     security_classification_service = providers.Factory(
         SecurityClassificationService,
         user=user,
         repo=security_classification_repo,
         tenant_service=tenant_service,
+        impact_service=security_level_impact_service,
     )
     document_template_service = providers.Factory(
         DocumentTemplateService, user=user, repo=document_template_repo
@@ -1473,7 +1485,10 @@ class Container(containers.DeclarativeContainer):
         effective_config_service=effective_config_service,
     )
     user_group_service = providers.Factory(
-        UserGroupsService, user=user, repo=user_groups_repo
+        UserGroupsService,
+        user=user,
+        repo=user_groups_repo,
+        security_classification_repo=security_classification_repo,
     )
     user_service = providers.Factory(
         UserService,

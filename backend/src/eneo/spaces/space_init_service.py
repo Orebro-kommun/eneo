@@ -6,6 +6,7 @@ from eneo.assistants.assistant_update import AssistantUpdate
 from eneo.governance_policy.domain.policy_resolver import (
     select_effective_completion_model,
 )
+from eneo.security_classifications.domain.effective_level import meets_security_floor
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -17,6 +18,9 @@ if TYPE_CHECKING:
     from eneo.governance_policy.application.effective_config_service import (
         EffectiveConfigService,
     )
+    from eneo.security_classifications.domain.entities.security_classification import (
+        SecurityClassification,
+    )
     from eneo.spaces.space import Space
     from eneo.spaces.space_repo import SpaceRepository
     from eneo.spaces.space_service import SpaceService
@@ -25,14 +29,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _unusable_reason(model: "CompletionModel | None") -> str:
+def _unusable_reason(
+    model: "CompletionModel | None", floor: "SecurityClassification | None"
+) -> str:
     if model is None:
         return "missing"
     if model.deleted_at is not None:
         return "deleted"
     if model.migrated_to_model_id is not None:
         return "migrated"
-    return "disabled"
+    if not model.can_access:
+        return "disabled"
+    assert floor is not None
+    return f"below security level {floor.id}"
 
 
 class SpaceInitService:
@@ -109,7 +118,8 @@ class SpaceInitService:
 
         The assistant is created with whatever default model exists at the
         time, which may be none, and a stored model can later be deleted,
-        migrated or disabled. No lifecycle event repairs that, so do it here:
+        migrated or disabled, or fall below the owner's security level. No
+        lifecycle event repairs that, so do it here:
         every chat load passes through this service, which already writes on
         read. A usable stored choice is never touched. When a models policy is
         enforced, the policy's own resolution is stored so the saved id matches
@@ -124,7 +134,12 @@ class SpaceInitService:
             return space
 
         current = assistant.completion_model
-        if current is not None and current.can_access:
+        floor = space.security_classification
+        if (
+            current is not None
+            and current.can_access
+            and meets_security_floor(floor, current.security_classification)
+        ):
             return space
 
         fallback = await self._fallback_completion_model(space, assistant)
@@ -142,7 +157,7 @@ class SpaceInitService:
             assistant.id,
             self.user.id,
             current.id if current is not None else None,
-            _unusable_reason(current),
+            _unusable_reason(current, floor),
             fallback.id,
         )
         await self.assistant_repo.apply_update(
@@ -160,14 +175,15 @@ class SpaceInitService:
     ) -> "CompletionModel | None":
         if self.effective_config_service is not None:
             effective_config = await self.effective_config_service.resolve_for(
-                assistant, space_is_personal=True
+                assistant, space_is_personal=True, floor=space.security_classification
             )
             if effective_config.models_enforced:
                 return select_effective_completion_model(
                     current_model=None, effective_config=effective_config
                 )
 
-        # Personal spaces load every tenant model, usable or not, and
+        # Personal spaces load every tenant model that meets the owner's
+        # security level, usable or not, and
         # get_default_completion_model raises when none is usable.
         if not any(model.can_access for model in space.completion_models):
             return None

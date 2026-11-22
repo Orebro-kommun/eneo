@@ -244,7 +244,13 @@ export function SpaceChat() {
       enabledCapabilities: assistant.enabled_capabilities,
       availableCapabilities: assistant.available_capabilities,
       effectiveConfig: assistant.effective_config ?? null,
-      completionModel: partnerCompletionModel(assistant, space.completion_models)
+      completionModel: partnerCompletionModel(assistant, space.completion_models),
+      // The personal space lists only the models that meet its owner's level.
+      modelBelowLevel:
+        space.personal &&
+        space.security_classification != null &&
+        assistant.completion_model != null &&
+        !space.completion_models.some((model) => model.id === assistant.completion_model?.id)
     };
   } else if (type === "default-assistant" || !partnerId) {
     const assistant = space.default_assistant;

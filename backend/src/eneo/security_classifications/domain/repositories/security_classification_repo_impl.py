@@ -5,7 +5,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import InstrumentedAttribute, selectinload
 from typing_extensions import override
 
 from eneo.base.base_repository import BaseRepository
@@ -20,6 +20,29 @@ from eneo.users.user import UserInDB
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from eneo.database.tables.ai_models_table import (
+        CompletionModels,
+        EmbeddingModels,
+        TranscriptionModels,
+    )
+    from eneo.database.tables.app_table import Apps
+    from eneo.database.tables.assistant_table import Assistants
+    from eneo.database.tables.collections_table import CollectionsTable
+    from eneo.database.tables.integration_table import IntegrationKnowledge
+    from eneo.database.tables.service_table import Services
+    from eneo.database.tables.websites_table import Websites
+
+    _Model = type[CompletionModels] | type[EmbeddingModels] | type[TranscriptionModels]
+    _ModelId = InstrumentedAttribute[UUID] | InstrumentedAttribute[UUID | None]
+    _Resource = (
+        type[Assistants]
+        | type[Apps]
+        | type[Services]
+        | type[CollectionsTable]
+        | type[Websites]
+        | type[IntegrationKnowledge]
+    )
 
 
 class SecurityClassificationRepoImpl(BaseRepository):
@@ -159,6 +182,9 @@ class SecurityClassificationRepoImpl(BaseRepository):
         )
         from eneo.database.tables.mcp_server_table import MCPServers
         from eneo.database.tables.spaces_table import Spaces
+        from eneo.database.tables.tenant_table import Tenants
+        from eneo.database.tables.user_groups_table import UserGroups
+        from eneo.user_groups.user_group import UserGroupState
 
         # Soft-deleted completion and rerank models still carry their FK to
         # the classification, but they're not active anymore — counting them
@@ -196,6 +222,20 @@ class SecurityClassificationRepoImpl(BaseRepository):
                 .where(MCPServers.security_classification_id == id)
                 .scalar_subquery()
                 .label("mcp_servers"),
+                sa.select(sa.func.count())
+                .where(Tenants.default_user_security_classification_id == id)
+                .scalar_subquery()
+                .label("default_user_level"),
+                sa.select(sa.func.count())
+                .where(
+                    UserGroups.security_classification_id == id,
+                    sa.or_(
+                        UserGroups.state.is_(None),
+                        UserGroups.state != UserGroupState.DELETED,
+                    ),
+                )
+                .scalar_subquery()
+                .label("user_groups"),
             )
         )
         row = counts.one()
@@ -206,6 +246,213 @@ class SecurityClassificationRepoImpl(BaseRepository):
             "rerank_models": row.rerank_models,
             "spaces": row.spaces,
             "mcp_servers": row.mcp_servers,
+            "default_user_level": row.default_user_level,
+            "user_groups": row.user_groups,
+        }
+
+    async def spaces_below_default_level(
+        self,
+    ) -> list[sa.Row[tuple[UUID, str, UUID | None]]]:
+        """Shared spaces whose classification is below the default user level."""
+        from eneo.database.tables.spaces_table import Spaces
+        from eneo.database.tables.tenant_table import Tenants
+
+        classification = SecurityClassificationDBModel
+        default = (
+            sa.select(classification.security_level)
+            .join(
+                Tenants,
+                Tenants.default_user_security_classification_id == classification.id,
+            )
+            .where(Tenants.id == self.user.tenant_id)
+            .scalar_subquery()
+        )
+        result = await self.session.execute(
+            sa.select(Spaces.id, Spaces.name, Spaces.security_classification_id)
+            .outerjoin(
+                classification, classification.id == Spaces.security_classification_id
+            )
+            .where(
+                Spaces.tenant_id == self.user.tenant_id,
+                # Neither a personal space nor the organisation's own.
+                Spaces.user_id.is_(None),
+                Spaces.tenant_space_id.is_not(None),
+                sa.func.coalesce(
+                    classification.security_level < default, default.is_not(None)
+                ),
+            )
+            .order_by(Spaces.name)
+        )
+        return list(result.all())
+
+    async def count_level_impact(
+        self, level: int | None, user_group_id: UUID | None
+    ) -> dict[str, int]:
+        """Count what changes if `level` becomes a group's level, or the default.
+
+        A resource counts when the new level stops it and the current one
+        does not. Only personal spaces are looked at.
+        """
+        from eneo.database.tables.ai_models_table import (
+            CompletionModels,
+            EmbeddingModels,
+            TranscriptionModels,
+        )
+        from eneo.database.tables.app_table import Apps
+        from eneo.database.tables.assistant_table import Assistants
+        from eneo.database.tables.collections_table import CollectionsTable
+        from eneo.database.tables.integration_table import IntegrationKnowledge
+        from eneo.database.tables.service_table import Services
+        from eneo.database.tables.spaces_table import Spaces
+        from eneo.database.tables.tenant_table import Tenants
+        from eneo.database.tables.user_groups_table import UserGroups
+        from eneo.database.tables.users_table import Users, usergroups_users_table
+        from eneo.database.tables.websites_table import Websites
+        from eneo.user_groups.user_group import UserGroupState
+
+        tenant_id = self.user.tenant_id
+        proposed = sa.literal(level, sa.Integer)
+        classification = SecurityClassificationDBModel
+
+        not_deleted = sa.or_(
+            UserGroups.state.is_(None), UserGroups.state != UserGroupState.DELETED
+        )
+        if user_group_id is not None and not await self.session.scalar(
+            sa.select(
+                sa.exists().where(
+                    UserGroups.id == user_group_id,
+                    UserGroups.tenant_id == tenant_id,
+                    not_deleted,
+                )
+            )
+        ):
+            raise NotFoundException(f"User group with ID {user_group_id} not found")
+
+        group_level = classification.security_level
+        new_group_level = (
+            group_level
+            if user_group_id is None
+            else sa.case((UserGroups.id == user_group_id, proposed), else_=group_level)
+        )
+        from_groups = (
+            sa.select(
+                usergroups_users_table.c.user_id,
+                sa.func.max(group_level).label("old"),
+                sa.func.max(new_group_level).label("new"),
+            )
+            .join(UserGroups, UserGroups.id == usergroups_users_table.c.user_group_id)
+            .outerjoin(
+                classification,
+                classification.id == UserGroups.security_classification_id,
+            )
+            .where(
+                UserGroups.tenant_id == tenant_id,
+                not_deleted,
+            )
+            .group_by(usergroups_users_table.c.user_id)
+            .subquery()
+        )
+        default = (
+            sa.select(classification.security_level)
+            .join(
+                Tenants,
+                Tenants.default_user_security_classification_id == classification.id,
+            )
+            .where(Tenants.id == tenant_id)
+            .scalar_subquery()
+        )
+        old = sa.func.coalesce(from_groups.c.old, default)
+        new = sa.func.coalesce(
+            from_groups.c.new, proposed if user_group_id is None else default
+        )
+        affected = (
+            sa.select(Users.id, old.label("old"), new.label("new"))
+            .outerjoin(from_groups, from_groups.c.user_id == Users.id)
+            .where(
+                Users.tenant_id == tenant_id,
+                Users.deleted_at.is_(None),
+                old.is_distinct_from(new),
+            )
+            .cte("affected")
+        )
+
+        def below(
+            model: "_Model", column: "_ModelId", floor: sa.ColumnElement[int]
+        ) -> sa.ColumnElement[bool]:
+            """The resource uses a model that does not meet the floor."""
+            model_level = (
+                sa.select(classification.security_level)
+                .where(classification.id == model.security_classification_id)
+                .scalar_subquery()
+            )
+            return sa.and_(
+                floor.is_not(None),
+                sa.exists().where(
+                    model.id == column,
+                    sa.func.coalesce(model_level < floor, sa.true()),
+                ),
+            )
+
+        def count(
+            resource: "_Resource",
+            *model_links: "tuple[_Model, _ModelId]",
+            where: sa.ColumnElement[bool] = sa.true(),
+        ):
+            def stopped(floor: sa.ColumnElement[int]) -> sa.ColumnElement[bool]:
+                return sa.or_(*(below(*link, floor) for link in model_links))
+
+            return (
+                sa.select(sa.func.count())
+                .select_from(resource)
+                .join(Spaces, Spaces.id == resource.space_id)
+                .join(affected, affected.c.id == Spaces.user_id)
+                .where(where, stopped(affected.c.new), sa.not_(stopped(affected.c.old)))
+                .scalar_subquery()
+            )
+
+        row = (
+            await self.session.execute(
+                sa.select(
+                    sa.select(sa.func.count())
+                    .select_from(affected)
+                    .scalar_subquery()
+                    .label("affected_users"),
+                    count(
+                        Assistants,
+                        (CompletionModels, Assistants.completion_model_id),
+                        # The personal default assistant moves to another model.
+                        where=Assistants.is_default.is_(False),
+                    ).label("assistants"),
+                    count(
+                        Apps,
+                        (CompletionModels, Apps.completion_model_id),
+                        (TranscriptionModels, Apps.transcription_model_id),
+                    ).label("apps"),
+                    count(
+                        Services, (CompletionModels, Services.completion_model_id)
+                    ).label("services"),
+                    count(
+                        CollectionsTable,
+                        (EmbeddingModels, CollectionsTable.embedding_model_id),
+                    ).label("collections"),
+                    count(
+                        Websites, (EmbeddingModels, Websites.embedding_model_id)
+                    ).label("websites"),
+                    count(
+                        IntegrationKnowledge,
+                        (EmbeddingModels, IntegrationKnowledge.embedding_model_id),
+                    ).label("integration_knowledge"),
+                )
+            )
+        ).one()
+        return {
+            "affected_users": row.affected_users,
+            "assistants": row.assistants,
+            "apps": row.apps,
+            "services": row.services,
+            "knowledge_sources": row.collections
+            + row.websites
+            + row.integration_knowledge,
         }
 
     @override

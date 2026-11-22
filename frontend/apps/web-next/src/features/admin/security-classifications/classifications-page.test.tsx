@@ -1,33 +1,82 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openMenuOnRelease } from "@/test/menus";
 import { renderInApp } from "@/test/render";
 
 const post = vi.hoisted(() => vi.fn());
+const put = vi.hoisted(() => vi.fn());
+const impactRequest = vi.hoisted(() => vi.fn());
+const impact = {
+  affected_users: 12,
+  assistants: 3,
+  apps: 0,
+  services: 1,
+  knowledge_sources: 0,
+  completion_models: 2,
+  embedding_models: 1,
+  transcription_models: 0
+};
+const state = vi.hoisted(() => ({ defaultLevel: null as string | null }));
+const toast = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn()
+}));
+vi.mock("@/lib/toast", () => ({ toast }));
+vi.mock("@/lib/navigation", () => import("@/test/navigation"));
 vi.mock("@/lib/api/browser", () => ({
   browserApi: {
     POST: post,
-    GET: () =>
-      Promise.resolve({
-        data: {
-          security_enabled: true,
-          security_classifications: [
-            { id: "c1", name: "Klass 1 · Öppen", description: null, security_level: 1 },
-            { id: "c2", name: "Klass 2 · Intern", description: null, security_level: 2 }
-          ]
-        },
-        response: new Response("{}")
-      })
+    PUT: put,
+    GET: (path: string, init?: unknown) =>
+      path === "/api/v1/security-classifications/level-impact/"
+        ? impactRequest(init)
+        : path === "/api/v1/security-classifications/spaces-below-default/"
+          ? Promise.resolve({
+              data: {
+                items: [
+                  { id: "s1", name: "Bygglov", security_classification_id: "c1" },
+                  { id: "s2", name: "Arkivet", security_classification_id: null }
+                ]
+              },
+              response: new Response("{}")
+            })
+          : Promise.resolve({
+              data: {
+                security_enabled: true,
+                default_user_security_classification_id: state.defaultLevel,
+                security_classifications: [
+                  { id: "c1", name: "Klass 1 · Öppen", description: null, security_level: 1 },
+                  { id: "c2", name: "Klass 2 · Intern", description: null, security_level: 2 }
+                ]
+              },
+              response: new Response("{}")
+            })
   }
 }));
 
 import { SecurityClassificationsPage } from "./classifications-page";
 
+beforeEach(() => {
+  impactRequest.mockImplementation(() =>
+    Promise.resolve({ data: impact, response: new Response("{}") })
+  );
+});
 afterEach(() => {
   cleanup();
   post.mockReset();
+  put.mockReset();
+  toast.error.mockReset();
+  state.defaultLevel = null;
 });
+
+async function chooseDefaultLevel(name: string) {
+  fireEvent.click(await screen.findByRole("combobox", { name: "Standardnivå för användare" }));
+  fireEvent.click(await screen.findByRole("option", { name }));
+  return screen.findByRole("alertdialog", { name: "Ändra standardnivå" });
+}
 
 describe("SecurityClassificationsPage", () => {
   it("names each classification's menu after the classification", async () => {
@@ -99,5 +148,112 @@ describe("SecurityClassificationsPage", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Inaktivera" }));
     expect(toggle.hasAttribute("disabled")).toBe(false);
     expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the organisation's default level", async () => {
+    state.defaultLevel = "c2";
+    renderInApp(<SecurityClassificationsPage />);
+
+    const select = await screen.findByRole("combobox", { name: "Standardnivå för användare" });
+    expect(select.textContent).toContain("Klass 2 · Intern");
+  });
+
+  it("saves a chosen default level once it is confirmed", async () => {
+    put.mockResolvedValue({ data: {}, response: new Response("{}") });
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Klass 2 · Intern");
+    expect(put).not.toHaveBeenCalled();
+    expect(dialog.textContent).toContain("Klass 2 · Intern");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Bekräfta" }));
+
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith("/api/v1/security-classifications/default-user-level/", {
+        body: { security_classification: { id: "c2" } }
+      })
+    );
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+  });
+
+  it("clears the default level", async () => {
+    state.defaultLevel = "c2";
+    put.mockResolvedValue({ data: {}, response: new Response("{}") });
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Ingen standardnivå");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Bekräfta" }));
+
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith("/api/v1/security-classifications/default-user-level/", {
+        body: { security_classification: null }
+      })
+    );
+  });
+
+  it("says why a default level could not be saved", async () => {
+    put.mockResolvedValue({
+      error: { message: "No model meets the level" },
+      response: new Response("{}", { status: 400 })
+    });
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Klass 2 · Intern");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Bekräfta" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.getByRole("alertdialog")).toBe(dialog);
+  });
+
+  it("shows what a default level changes before it is saved", async () => {
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Klass 2 · Intern");
+
+    expect(await within(dialog).findByText("12 användare får ändrad säkerhetsnivå.")).toBeTruthy();
+    expect(within(dialog).getByText("3 personliga assistenter")).toBeTruthy();
+    expect(
+      within(dialog).getByText(
+        "Modeller som klarar nivån: 2 språkmodeller, 1 embeddingmodell och 0 transkriberingsmodeller."
+      )
+    ).toBeTruthy();
+    expect(within(dialog).getByText("1 personlig tjänst")).toBeTruthy();
+    expect(within(dialog).queryByText(/personliga appar|personlig app/)).toBeNull();
+    expect(impactRequest).toHaveBeenCalledWith({
+      params: { query: { security_classification_id: "c2", user_group_id: undefined } }
+    });
+  });
+
+  it("warns when no model meets the chosen default level", async () => {
+    impactRequest.mockImplementation(() =>
+      Promise.resolve({
+        data: { ...impact, completion_models: 0 },
+        response: new Response("{}")
+      })
+    );
+    renderInApp(<SecurityClassificationsPage />);
+
+    const dialog = await chooseDefaultLevel("Klass 2 · Intern");
+
+    expect(
+      await within(dialog).findByText(/Ingen tillgänglig AI-modell klarar den här nivån/)
+    ).toBeTruthy();
+  });
+
+  it("lists the shared spaces below the default level, each linked to its settings", async () => {
+    state.defaultLevel = "c2";
+    renderInApp(<SecurityClassificationsPage />);
+
+    const below = await screen.findByRole("link", { name: "Bygglov" });
+    expect(below.getAttribute("href")).toBe("/spaces/s1/settings?section=security");
+    expect(within(below.closest("li")!).getByText("Klass 1 · Öppen")).toBeTruthy();
+    const unclassified = screen.getByRole("link", { name: "Arkivet" });
+    expect(within(unclassified.closest("li")!).getByText("Ingen klassificering")).toBeTruthy();
+  });
+
+  it("lists no spaces while there is no default level", async () => {
+    renderInApp(<SecurityClassificationsPage />);
+
+    await screen.findByRole("combobox", { name: "Standardnivå för användare" });
+    expect(screen.queryByText("Delade ytor under standardnivån")).toBeNull();
   });
 });

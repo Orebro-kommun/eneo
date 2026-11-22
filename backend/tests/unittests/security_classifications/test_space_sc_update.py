@@ -236,3 +236,69 @@ def test_adding_models_with_lower_sc_than_space():
     space.update(security_classification=security_classification_happy_easter)
 
     assert len(space.completion_models) == 0
+
+
+def _space(security_classification=None, completion_models=()):
+    return Space(
+        id=uuid.uuid4(),
+        tenant_id=uuid.uuid4(),
+        user_id=None,
+        tenant_space_id=uuid.uuid4(),
+        name="Test Space",
+        description=None,
+        embedding_models=[],
+        completion_models=list(completion_models),
+        transcription_models=[],
+        mcp_servers=[],
+        default_assistant=MagicMock(),
+        assistants=[],
+        apps=[],
+        services=[],
+        websites=[],
+        collections=[],
+        integration_knowledge_list=[],
+        members={},
+        group_chats=[],
+        security_classification=security_classification,
+    )
+
+
+def _level(level: int, name: str = "level") -> SecurityClassification:
+    return SecurityClassification(
+        id=uuid.uuid4(),
+        name=name,
+        tenant_id=uuid.uuid4(),
+        security_level=level,
+        security_enabled=True,
+    )
+
+
+def test_the_level_changes_only_when_it_differs():
+    current = _level(1)
+    space = _space(current)
+
+    assert not space.changes_security_level(current)
+    assert not space.changes_security_level(_level(1, "another at the same level"))
+    assert space.changes_security_level(_level(2))
+    assert space.changes_security_level(None)
+    assert _space(None).changes_security_level(_level(0))
+    assert not _space(None).changes_security_level(None)
+
+
+def test_resending_the_classification_keeps_the_models_below_its_level():
+    current = _level(2)
+    below = MagicMock(security_classification=_level(1))
+    space = _space(current, [below])
+
+    space.update(security_classification=current)
+
+    assert space.completion_models == [below]
+
+
+def test_raising_the_level_drops_the_models_below_it():
+    below = MagicMock(security_classification=_level(1))
+    space = _space(_level(1), [below])
+
+    space.update(security_classification=_level(2))
+
+    assert space.completion_models == []

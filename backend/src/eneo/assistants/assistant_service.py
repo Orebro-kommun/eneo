@@ -708,7 +708,9 @@ class AssistantService:
         ):
             return None
         return await self.effective_config_service.resolve_for(
-            assistant, space_is_personal=space.is_personal()
+            assistant,
+            space_is_personal=space.is_personal(),
+            floor=space.security_classification,
         )
 
     @staticmethod
@@ -3654,6 +3656,8 @@ class AssistantService:
             raise BadRequestException(
                 "No completion model configured for this conversation.",
             )
+        # A mentioned assistant answers with its own model.
+        space.check_personal_level(effective_completion_model)
         # Request-scoped like the policy override above: a model that cannot
         # call tools cannot open a file reference, so inline the text instead.
         assistant_to_ask.inline_file_text = inline_file_text_for_model(

@@ -3,7 +3,7 @@
 from typing import Optional, Union
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from eneo.main.models import NOT_PROVIDED, BaseResponse, ModelId, NotProvided
 from eneo.security_classifications.domain.entities.security_classification import (
@@ -107,6 +107,49 @@ class SecurityEnableResponse(BaseModel):
     )
 
 
+class DefaultUserClassificationRequest(BaseModel):
+    security_classification: Optional[ModelId] = Field(
+        ...,
+        description="The classification to use as default, or null to clear it",
+    )
+
+
+class DefaultUserClassificationResponse(BaseModel):
+    default_user_security_classification_id: Optional[UUID]
+
+
+class SpaceBelowDefaultLevel(BaseModel):
+    id: UUID
+    name: str
+    security_classification_id: Optional[UUID]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SpacesBelowDefaultLevelResponse(BaseModel):
+    items: list[SpaceBelowDefaultLevel]
+
+
+class SecurityLevelImpactPublic(BaseModel):
+    """What changes if a level is saved on a user group or as the default."""
+
+    affected_users: int = Field(description="Users whose level would change")
+    assistants: int = Field(
+        description="Personal assistants whose model would fall below the level"
+    )
+    apps: int
+    services: int
+    knowledge_sources: int
+    completion_models: int = Field(
+        description="Available completion models that meet the level"
+    )
+    embedding_models: int
+    transcription_models: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class SecurityClassificationResponse(SecurityEnableResponse):
     security_enabled: bool
+    default_user_security_classification_id: Optional[UUID] = None
     security_classifications: list[SecurityClassificationPublic]

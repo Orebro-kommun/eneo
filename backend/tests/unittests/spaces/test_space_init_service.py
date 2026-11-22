@@ -70,6 +70,7 @@ def _model(*, can_access=True, deleted_at=None, migrated_to_model_id=None):
         can_access=can_access,
         deleted_at=deleted_at,
         migrated_to_model_id=migrated_to_model_id,
+        security_classification=None,
     )
 
 
@@ -85,6 +86,7 @@ def _personal_space(*, current_model, space_models, org_default=None):
         default_assistant=assistant,
         default_assistant_load_failed=False,
         completion_models=space_models,
+        security_classification=None,
         get_default_completion_model=MagicMock(
             return_value=org_default
             if org_default is not None

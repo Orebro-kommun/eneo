@@ -248,6 +248,20 @@
             "en": "When you reopen an app result, you can see whether processing has started. If the worker stops, the run stays in progress until it is marked as failed. You can then start a new run.",
             "sv": "När du öppnar ett appresultat igen ser du om bearbetningen har börjat. Om den avbryts står körningen kvar som pågående tills den markeras som misslyckad. Då kan du starta en ny körning."
           }
+        },
+        {
+          "id": "user-security-levels",
+          "type": "new",
+          "area": "admin",
+          "audience": "admin",
+          "title": {
+            "en": "Security levels for users",
+            "sv": "Säkerhetsnivå för användare"
+          },
+          "body": {
+            "en": "Set a security level on a user group, or a default level for the organisation, under Administration › Security classifications and User groups. A person with a level only gets models that meet it in personal chat and their own assistants, and new shared spaces start at that level. A preview shows what a level changes before it is saved. Nothing changes until an administrator sets a level.",
+            "sv": "Sätt en säkerhetsnivå på en användargrupp, eller en standardnivå för organisationen, under Administration › Säkerhetsklassificeringar och Användargrupper. En person med en nivå får bara modeller som klarar den i personlig chatt och bland sina egna assistenter, och nya delade ytor startar på den nivån. En förhandsvisning visar vad en nivå ändrar innan den sparas. Inget ändras förrän en administratör sätter en nivå."
+          }
         }
       ]
     },

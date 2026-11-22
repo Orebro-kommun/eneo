@@ -26,6 +26,7 @@ import { useSecretMutation } from "@/lib/api/use-secret-mutation";
 import { toast } from "@/lib/toast";
 import { rolesQueryOptions, type Role } from "@/features/admin/roles/roles";
 import { UserGroupField } from "./user-group-field";
+import { UserSecurityLevel } from "./user-security-level";
 import type { AdminUser } from "./users";
 import { KEYBOARD } from "@/components/astryx/keyboard-hints";
 
@@ -341,6 +342,7 @@ function UserEditorForm({
       {/* Outside the form: its changes save on their own, and Enter in its
           search field must not submit the user. */}
       {user ? <UserGroupField user={user} isDisabled={pending} /> : null}
+      {user ? <UserSecurityLevel user={user} /> : null}
 
       <DialogFooter>
         <Button label={t("cancel")} isDisabled={pending} onClick={() => onDone()} />

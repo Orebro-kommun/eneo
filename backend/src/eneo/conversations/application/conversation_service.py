@@ -513,6 +513,7 @@ class ConversationService:
         )
         assistant = space.get_assistant(assistant_id=session.assistant.id)
         assert assistant.completion_model is not None
+        space.check_personal_level(assistant.completion_model)
 
         response = await self.completion_service.get_response(
             text_input="Please set the title of the conversation",

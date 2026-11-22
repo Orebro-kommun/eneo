@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectNoAxeViolations } from "@/test/axe";
 import { renderInApp, testAppContext } from "@/test/render";
 
-const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn(), DELETE: vi.fn() }));
+const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn() }));
 const toast = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
@@ -25,6 +25,11 @@ const anna = { id: "u1", email: "anna.lind@kommun.se", username: "anna.lind" };
 const per = { id: "u2", email: "per.berg@kommun.se", username: null };
 const eva = { id: "u3", email: "eva.ek@kommun.se", username: "eva.ek" };
 
+/** What the single read adds to the first group. */
+let groupLevel: { security_classification_id: string | null } = {
+  security_classification_id: null
+};
+
 type Group = { id: string; name: string; users: (typeof anna | typeof per)[] };
 
 /**
@@ -40,6 +45,26 @@ function serve(initial: Group[], directory = [anna, per, eva]) {
       const items = email ? directory.filter((user) => user.email.includes(email)) : directory;
       return ok({ items, total_count: items.length, next_cursor: null });
     }
+    if (path === "/api/v1/user-groups/{id}/") return ok({ ...groups[0], ...groupLevel });
+    if (path === "/api/v1/security-classifications/level-impact/")
+      return ok({
+        affected_users: 2,
+        assistants: 1,
+        apps: 0,
+        services: 0,
+        knowledge_sources: 0,
+        completion_models: 0,
+        embedding_models: 0,
+        transcription_models: 0
+      });
+    if (path === "/api/v1/security-classifications/")
+      return ok({
+        security_enabled: true,
+        security_classifications: [
+          { id: "c1", name: "Öppen", description: null, security_level: 1 },
+          { id: "c2", name: "Intern", description: null, security_level: 2 }
+        ]
+      });
     throw new Error(`unexpected GET ${path}`);
   });
   return {
@@ -77,6 +102,7 @@ afterEach(() => {
   cleanup();
   document.querySelectorAll("[data-astryx-live-region]").forEach((region) => region.remove());
   vi.clearAllMocks();
+  groupLevel = { security_classification_id: null };
 });
 
 beforeEach(() => {
@@ -174,6 +200,79 @@ describe("AdminUserGroupsPage", () => {
     );
     expect(toast.success).toHaveBeenCalledWith("Gruppen heter nu Ekonomistaben");
     expectRefreshed(invalidate);
+  });
+
+  async function openLevelDialog() {
+    fireEvent.click(
+      within(openRowMenu("Ekonomi")).getByRole("menuitem", { name: "Säkerhetsnivå" })
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Säkerhetsnivå för Ekonomi" });
+    const level = await within(dialog).findByRole("combobox", { name: /^Säkerhetsnivå/ });
+    return { dialog, level };
+  }
+
+  it("shows the group's level, read from the group itself, and changes it", async () => {
+    groupLevel = { security_classification_id: "c1" };
+    const { invalidate } = await renderPage([economy]);
+    const { dialog, level } = await openLevelDialog();
+    expect(level.textContent).toContain("Öppen");
+
+    api.PUT.mockImplementation(() => ok({ ...economy, security_classification_id: "c2" }));
+    fireEvent.click(level);
+    fireEvent.click(await screen.findByRole("option", { name: "Intern" }));
+    // The preview is for this group, and warns that no model meets the level.
+    expect(await within(dialog).findByText("2 användare får ändrad säkerhetsnivå.")).toBeTruthy();
+    expect(within(dialog).getByText("1 personlig assistent")).toBeTruthy();
+    expect(
+      within(dialog).getByText(/Ingen tillgänglig AI-modell klarar den här nivån/)
+    ).toBeTruthy();
+    expect(api.GET).toHaveBeenCalledWith("/api/v1/security-classifications/level-impact/", {
+      params: { query: { security_classification_id: "c2", user_group_id: "g1" } }
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Spara ändringar" }));
+
+    await waitFor(() =>
+      expect(api.PUT).toHaveBeenCalledWith("/api/v1/user-groups/{id}/security-classification/", {
+        params: { path: { id: "g1" } },
+        body: { security_classification: { id: "c2" } }
+      })
+    );
+    expect(toast.success).toHaveBeenCalledWith("Säkerhetsnivån för Ekonomi sparades");
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["user-groups"] });
+  });
+
+  it("clears a group's level", async () => {
+    groupLevel = { security_classification_id: "c2" };
+    await renderPage([economy]);
+    const { dialog, level } = await openLevelDialog();
+
+    api.PUT.mockImplementation(() => ok({ ...economy, security_classification_id: null }));
+    fireEvent.click(level);
+    fireEvent.click(await screen.findByRole("option", { name: "Ingen nivå" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Spara ändringar" }));
+
+    await waitFor(() =>
+      expect(api.PUT).toHaveBeenCalledWith("/api/v1/user-groups/{id}/security-classification/", {
+        params: { path: { id: "g1" } },
+        body: { security_classification: null }
+      })
+    );
+  });
+
+  it("keeps the level dialog open and says why when the level is refused", async () => {
+    await renderPage([economy]);
+    const { dialog } = await openLevelDialog();
+
+    api.PUT.mockImplementation(() =>
+      Promise.resolve({
+        error: { message: "Security classification not found" },
+        response: new Response("{}", { status: 404 })
+      })
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Spara ändringar" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.getByRole("dialog", { name: "Säkerhetsnivå för Ekonomi" })).toBeTruthy();
   });
 
   it("deletes a group after a confirmation that names it, then focuses the heading", async () => {

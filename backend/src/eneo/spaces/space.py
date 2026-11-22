@@ -122,6 +122,17 @@ class Space:
     def _get_member_ids(self):
         return self.members.keys()
 
+    def changes_security_level(
+        self, classification: Optional[SecurityClassification]
+    ) -> bool:
+        """Whether moving to ``classification`` changes the level. Resending the
+        current classification, or naming another one at the same level, does not,
+        so it must not remove any link."""
+        current = self.security_classification
+        return (current.security_level if current else None) != (
+            classification.security_level if classification else None
+        )
+
     def is_personal(self):
         return self.user_id is not None
 
@@ -361,8 +372,9 @@ class Space:
                 raise BadRequestException(
                     "Can not change security classification of personal space"
                 )
+            changes_level = self.changes_security_level(security_classification)
             self.security_classification = security_classification
-            if self.security_classification is not None:
+            if changes_level and self.security_classification is not None:
                 self.completion_models = [
                     model
                     for model in self.completion_models
@@ -494,6 +506,7 @@ class Space:
         # Only add completion model to space if the assistant has one
         if cm is not None and getattr(cm, "id", None) is not None:
             if not self.is_completion_model_in_space(cm.id):
+                self.validate_model_security_compatibility(cm)
                 self.add_completion_model(cm)
 
         self.assistants.append(assistant)
@@ -512,6 +525,23 @@ class Space:
 
         return True
 
+    def check_personal_level(
+        self, *models: "CompletionModel | TranscriptionModel | None"
+    ) -> None:
+        """Refuse, with the reason, a model below a personal space's owner's level."""
+        floor = self.security_classification
+        if not self.is_personal() or floor is None:
+            return
+        if any(
+            model is not None and floor.is_greater_than(model.security_classification)
+            for model in models
+        ):
+            raise SecurityClassificationMismatchException(
+                "The selected AI model does not meet your security level. "
+                "Please choose a different model or contact your administrator.",
+                code="model_below_user_security_level",
+            )
+
     def can_ask_assistant(
         self,
         assistant: "Assistant",
@@ -525,6 +555,7 @@ class Space:
                 "No AI model is configured for this assistant. "
                 "Please select a model in the assistant settings."
             )
+        self.check_personal_level(completion_model)
         if not self.is_completion_model_available(completion_model.id):
             raise ModelNotAvailableException(
                 "The selected AI model is not available in this space. "

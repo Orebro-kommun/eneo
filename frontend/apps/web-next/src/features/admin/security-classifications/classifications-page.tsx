@@ -1,5 +1,5 @@
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowDownToLine, ArrowUpToLine, Lock, LockOpen, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "use-intl";
@@ -8,15 +8,25 @@ import { PageHeader } from "@/components/composites/page-header";
 import { SettingsGroup, SettingsRow } from "@/components/composites/settings-rows";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { browserApi } from "@/lib/api/browser";
+import Link from "@/lib/link";
 import { unwrap } from "@/lib/api/errors";
 import { toastApiError } from "@/lib/api/toast";
 import { ClassificationDialog } from "./classification-dialog";
+import { LevelImpact } from "./level-impact";
 import {
   SECURITY_CLASSIFICATIONS_KEY,
   highestFirst,
   securityClassificationsQueryOptions,
+  spacesBelowDefaultQueryOptions,
   type SecurityClassification
 } from "./security-classifications";
 
@@ -157,6 +167,109 @@ function EnableToggle({ enabled }: { enabled: boolean }) {
   );
 }
 
+const NO_DEFAULT = "__none__";
+
+/** The level of every user who gets none from a user group. Asks before it saves. */
+function DefaultUserLevel({
+  classifications,
+  currentId
+}: {
+  classifications: SecurityClassification[];
+  currentId: string | null;
+}) {
+  const t = useTranslations();
+  const queryClient = useQueryClient();
+  // undefined: nothing asked; null: asked to clear the default.
+  const [pending, setPending] = useState<SecurityClassification | null | undefined>(undefined);
+
+  const save = useMutation({
+    mutationFn: (next: SecurityClassification | null) =>
+      unwrap(
+        browserApi.PUT("/api/v1/security-classifications/default-user-level/", {
+          body: { security_classification: next ? { id: next.id } : null }
+        })
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: SECURITY_CLASSIFICATIONS_KEY });
+      setPending(undefined);
+    },
+    onError: (error) => toastApiError(error, t)
+  });
+
+  return (
+    <SettingsRow title={t("default_user_level")} description={t("default_user_level_description")}>
+      <Select
+        value={currentId ?? NO_DEFAULT}
+        onValueChange={(value) => {
+          if (save.isPending || value === (currentId ?? NO_DEFAULT)) return;
+          setPending(classifications.find((item) => item.id === value) ?? null);
+        }}
+      >
+        <SelectTrigger className="w-64" aria-label={t("default_user_level")}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_DEFAULT}>{t("no_default_user_level")}</SelectItem>
+          {classifications.map((classification) => (
+            <SelectItem key={classification.id} value={classification.id}>
+              {classification.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <ConfirmDialogControlled
+        open={pending !== undefined}
+        onOpenChange={(open) => !open && setPending(undefined)}
+        title={t("change_default_user_level")}
+        description={
+          pending
+            ? t("confirm_default_user_level", { name: pending.name })
+            : t("confirm_clear_default_user_level")
+        }
+        confirmLabel={save.isPending ? t("saving") : t("confirm")}
+        variant="default"
+        pending={save.isPending}
+        onConfirm={() => {
+          if (pending !== undefined) save.mutate(pending);
+        }}
+      >
+        {pending !== undefined && <LevelImpact classificationId={pending?.id ?? null} />}
+      </ConfirmDialogControlled>
+    </SettingsRow>
+  );
+}
+
+/** Existing shared spaces are never changed by a default level: the admin finds them here. */
+function SpacesBelowDefault({ classifications }: { classifications: SecurityClassification[] }) {
+  const t = useTranslations();
+  const { data: spaces } = useQuery(spacesBelowDefaultQueryOptions(browserApi));
+  if (!spaces?.length) return null;
+
+  return (
+    <SettingsRow
+      title={t("spaces_below_default_level")}
+      description={t("spaces_below_default_level_description")}
+    >
+      <ul className="flex flex-col gap-1 text-sm">
+        {spaces.map((space) => (
+          <li key={space.id} className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <Link
+              href={`/spaces/${space.id}/settings?section=security`}
+              className="min-w-0 break-words underline"
+            >
+              {space.name}
+            </Link>
+            <span className="text-ax-text-secondary">
+              {classifications.find((item) => item.id === space.security_classification_id)?.name ??
+                t("spaces_below_default_level_unclassified")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </SettingsRow>
+  );
+}
+
 export function SecurityClassificationsPage() {
   const t = useTranslations();
   const queryClient = useQueryClient();
@@ -196,6 +309,15 @@ export function SecurityClassificationsPage() {
 
       <SettingsGroup title={t("general")}>
         <EnableToggle enabled={data.security_enabled} />
+        {data.security_enabled && (
+          <DefaultUserLevel
+            classifications={ordered}
+            currentId={data.default_user_security_classification_id ?? null}
+          />
+        )}
+        {data.security_enabled && data.default_user_security_classification_id && (
+          <SpacesBelowDefault classifications={ordered} />
+        )}
       </SettingsGroup>
 
       <SettingsGroup title={t("configuration")}>

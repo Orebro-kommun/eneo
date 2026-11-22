@@ -279,7 +279,11 @@ const ERROR_REASON_MESSAGE_KEYS = new Map<string, string>([
   ["provider_model_not_found", "provider_failure_model_not_found"],
   ["provider_rejected_request", "provider_failure_rejected_request"],
   ["provider_error", "eneo_error_9010"],
-  ["stream_error", "chat_answer_failed_internal"]
+  ["stream_error", "chat_answer_failed_internal"],
+  ["model_below_user_security_level", "security_level_model_below"],
+  ["space_below_user_security_level", "security_level_space_below"],
+  ["move_below_user_security_level", "security_level_move_below"],
+  ["default_level_without_model", "security_level_default_without_model"]
 ]);
 
 export function getErrorMessageForReason(

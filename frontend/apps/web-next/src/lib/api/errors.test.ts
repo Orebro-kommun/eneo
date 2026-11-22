@@ -194,7 +194,11 @@ describe("getErrorMessage", () => {
     ["provider_error", "eneo_error_9010"],
     ["stream_error", "chat_answer_failed_internal"],
     ["tenant_quota_exceeded", "job_failure_tenant_quota_exceeded"],
-    ["user_quota_exceeded", "job_failure_user_quota_exceeded"]
+    ["user_quota_exceeded", "job_failure_user_quota_exceeded"],
+    ["model_below_user_security_level", "security_level_model_below"],
+    ["space_below_user_security_level", "security_level_space_below"],
+    ["move_below_user_security_level", "security_level_move_below"],
+    ["default_level_without_model", "security_level_default_without_model"]
   ])("describes %s before its less specific numeric code", (reason, key) => {
     const error = apiErrorFromResponse(errorResponse(503), {
       message: "Refused",

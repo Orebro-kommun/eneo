@@ -256,7 +256,7 @@ async def test_ask_uses_effective_model_for_session_metadata_and_response():
         is None
     )
     effective_config_service.resolve_for.assert_awaited_once_with(
-        assistant, space_is_personal=True
+        assistant, space_is_personal=True, floor=space.security_classification
     )
 
 

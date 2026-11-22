@@ -37,6 +37,10 @@ from eneo.mcp_servers.domain.entities.mcp_server import (
     is_capability_purpose,
 )
 from eneo.roles.permissions import Permission
+from eneo.security_classifications.domain.effective_level import (
+    meets_security_floor,
+    security_floor_for,
+)
 from eneo.spaces.api.space_models import SpaceGroupMember, SpaceMember, SpaceRoleValue
 from eneo.spaces.space import SECURITY_CLASSIFICATION_EXCEPTION_MESSAGE, Space
 from eneo.spaces.space_applications_projection import SpaceApplicationsProjection
@@ -171,6 +175,9 @@ class SpaceService:
             tenant_id=self.user.tenant_id,
             tenant_space_id=getattr(hub, "id", None),
         )
+        # A new space starts at its creator's level, with what meets it.
+        floor = await security_floor_for(self.repo.session, self.user)
+        space.security_classification = floor
 
         def _get_latest_model(
             models: Sequence["EmbeddingModel"],
@@ -180,7 +187,9 @@ class SpaceService:
                 key=lambda model: datetime_or_utc_min(model.created_at),
                 reverse=True,
             ):
-                if model.can_access:
+                if model.can_access and meets_security_floor(
+                    floor, model.security_classification
+                ):
                     return model
 
         # Set embedding models as only the latest one
@@ -196,12 +205,18 @@ class SpaceService:
         completion_models = (
             await self.completion_model_service.get_available_completion_models()
         )
-        space.completion_models = completion_models
+        space.completion_models = [
+            model
+            for model in completion_models
+            if meets_security_floor(floor, model.security_classification)
+        ]
 
         # Set transcription models as only the default one
         transcription_model = await self.transcription_model_service.get_default_model()
 
-        if transcription_model is None:
+        if transcription_model is None or not meets_security_floor(
+            floor, transcription_model.security_classification
+        ):
             transcription_models = []
         else:
             transcription_models = [transcription_model]
@@ -210,16 +225,28 @@ class SpaceService:
 
         # Set all tenant-enabled MCP servers for new spaces
         import sqlalchemy as sa
+        from sqlalchemy.orm import selectinload as _selectinload
 
         from eneo.database.tables.mcp_server_table import (
             MCPServers as MCPServersTable,
         )
+        from eneo.database.tables.security_classifications_table import (
+            SecurityClassification as SecurityClassificationDBModel,
+        )
         from eneo.mcp_servers.domain.entities.mcp_server import MCPServer
+        from eneo.security_classifications.domain.entities.security_classification import (
+            SecurityClassification,
+        )
 
         query = (
             sa.select(MCPServersTable)
             .where(MCPServersTable.tenant_id == self.user.tenant_id)
             .where(MCPServersTable.is_enabled == True)  # noqa: E712
+            .options(
+                _selectinload(MCPServersTable.security_classification).selectinload(
+                    SecurityClassificationDBModel.tenant
+                ),
+            )
         )
         result = await self.repo.session.execute(query)
         servers_db = result.scalars().all()
@@ -233,7 +260,7 @@ class SpaceService:
             }
         )
         servers_db = [s for s in servers_db if not is_capability_purpose(s.purpose)]
-        space.mcp_servers = [
+        mcp_servers = [
             MCPServer(
                 id=server.id,
                 tenant_id=server.tenant_id,
@@ -248,10 +275,18 @@ class SpaceService:
                 tags=server.tags,
                 icon_url=server.icon_url,
                 documentation_url=server.documentation_url,
+                security_classification=SecurityClassification.to_domain(
+                    server.security_classification
+                ),
                 created_at=server.created_at,
                 updated_at=server.updated_at,
             )
             for server in servers_db
+        ]
+        space.mcp_servers = [
+            server
+            for server in mcp_servers
+            if meets_security_floor(floor, server.effective_security_classification)
         ]
 
         # Set admin
@@ -386,6 +421,21 @@ class SpaceService:
                 space_security_classification = await self.security_classification_service.get_security_classification(  # noqa: E501
                     classification_id
                 )
+            # Only a real change is checked, so a space already below the
+            # user's level can still be saved.
+            if (
+                space.changes_security_level(space_security_classification)
+                and Permission.ADMIN not in self.user.permissions
+                and not meets_security_floor(
+                    await security_floor_for(self.repo.session, self.user),
+                    space_security_classification,
+                )
+            ):
+                raise UnauthorizedException(
+                    "The space's security classification cannot be set below "
+                    "your own security level.",
+                    code="space_below_user_security_level",
+                )
 
         completion_models: list["CompletionModel"] | None = None
         if completion_model_ids is not None:
@@ -519,6 +569,9 @@ class SpaceService:
                 else space.security_classification,
             )
 
+        level_changed = is_provided(
+            security_classification
+        ) and space.changes_security_level(space_security_classification)
         space.update(
             name=name,
             description=description,
@@ -555,7 +608,7 @@ class SpaceService:
                 else NOT_PROVIDED,
                 minimum_security_level=(
                     space.security_classification.security_level
-                    if classification_changed
+                    if level_changed
                     and space.security_classification
                     and space.security_classification.security_enabled
                     else None

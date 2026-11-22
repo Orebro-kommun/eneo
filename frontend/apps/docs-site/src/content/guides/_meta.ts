@@ -6,6 +6,7 @@ const meta: MetaRecord = {
   "scim-provisioning": "SCIM Provisioning",
   "audit-logging": "Audit Logging",
   "data-retention": "Data Retention",
+  "security-levels": "Security Levels for Users",
   skills: "Skills",
   "ai-providers": "AI Provider Configuration",
   "mcp-servers": "MCP Servers",
