@@ -7726,5 +7726,7 @@
   "spaces_below_default_level": "Shared spaces below the default level",
   "spaces_below_default_level_description": "These spaces have a lower classification than the default level, or none. The default level does not change existing spaces. Open the space to change its classification.",
   "spaces_below_default_level_unclassified": "No classification",
-  "security_level_default_without_model": "The default level cannot be saved, because no available AI model meets it. Classify a model at that level first."
+  "security_level_default_without_model": "The default level cannot be saved, because no available AI model meets it. Classify a model at that level first.",
+  "security_level_assistant_model_below": "The assistant's model does not meet your security level ({level}). Choose another model in the assistant's settings.",
+  "security_level_model_below_badge": "Model below the level"
 }

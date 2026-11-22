@@ -8,7 +8,7 @@ import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { Button } from "@astryxdesign/core/Button";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
-import { Bug, ChevronDown, Menu, Pencil, SquarePen } from "lucide-react";
+import { Bug, ChevronDown, Menu, Pencil, SquarePen, TriangleAlert } from "lucide-react";
 import { MEDIA } from "@/lib/breakpoints";
 import { useRouter } from "@/lib/navigation";
 import { useTranslations } from "use-intl";
@@ -471,6 +471,12 @@ export function ChatHeader({
             Felsökning and Redigera are named icons. */}
         <div className="flex min-w-max flex-1 items-center justify-end gap-2">
           <ClassificationToken name={partner.securityClassification} />
+          {partner.modelBelowLevel && (
+            <span className="bg-ax-warning-muted text-ax-text inline-flex min-h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold">
+              <TriangleAlert aria-hidden="true" className="size-3.5 shrink-0" />
+              {t("security_level_model_below_badge")}
+            </span>
+          )}
           {debug && (debug.isEnabled || !coarse) && (
             <Button
               label={t("chat_debug_open")}

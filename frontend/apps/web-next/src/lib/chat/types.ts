@@ -52,6 +52,8 @@ export type ChatPartner = {
   personalSpace?: boolean;
   /** The space's security classification label, when it has one. */
   securityClassification?: string | null;
+  /** The assistant's model is below the owner's security level in the personal space. */
+  modelBelowLevel?: boolean;
   /** Collections and websites the partner searches (named activity steps and sources). */
   knowledge?: KnowledgeOrigin[];
   knowledgeMode?: Schema<"KnowledgeMode">;

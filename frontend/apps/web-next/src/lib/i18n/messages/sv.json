@@ -7726,5 +7726,7 @@
   "spaces_below_default_level": "Delade ytor under standardnivån",
   "spaces_below_default_level_description": "De här ytorna har en lägre klassificering än standardnivån, eller ingen. Standardnivån ändrar inte befintliga ytor. Öppna ytan för att ändra dess klassificering.",
   "spaces_below_default_level_unclassified": "Ingen klassificering",
-  "security_level_default_without_model": "Standardnivån kan inte sparas, eftersom ingen tillgänglig AI-modell klarar den. Klassa en modell på den nivån först."
+  "security_level_default_without_model": "Standardnivån kan inte sparas, eftersom ingen tillgänglig AI-modell klarar den. Klassa en modell på den nivån först.",
+  "security_level_assistant_model_below": "Assistentens modell klarar inte din säkerhetsnivå ({level}). Välj en annan modell i assistentens inställningar.",
+  "security_level_model_below_badge": "Modellen klarar inte nivån"
 }
