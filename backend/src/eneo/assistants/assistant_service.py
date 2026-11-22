@@ -3656,6 +3656,8 @@ class AssistantService:
             raise BadRequestException(
                 "No completion model configured for this conversation.",
             )
+        # A mentioned assistant answers with its own model.
+        space.check_personal_level(effective_completion_model)
         # Request-scoped like the policy override above: a model that cannot
         # call tools cannot open a file reference, so inline the text instead.
         assistant_to_ask.inline_file_text = inline_file_text_for_model(
