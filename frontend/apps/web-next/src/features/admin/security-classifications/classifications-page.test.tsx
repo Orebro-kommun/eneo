@@ -25,6 +25,7 @@ const toast = vi.hoisted(() => ({
   warning: vi.fn()
 }));
 vi.mock("@/lib/toast", () => ({ toast }));
+vi.mock("@/lib/navigation", () => import("@/test/navigation"));
 vi.mock("@/lib/api/browser", () => ({
   browserApi: {
     POST: post,
@@ -32,17 +33,27 @@ vi.mock("@/lib/api/browser", () => ({
     GET: (path: string, init?: unknown) =>
       path === "/api/v1/security-classifications/level-impact/"
         ? impactRequest(init)
-        : Promise.resolve({
-            data: {
-              security_enabled: true,
-              default_user_security_classification_id: state.defaultLevel,
-              security_classifications: [
-                { id: "c1", name: "Klass 1 · Öppen", description: null, security_level: 1 },
-                { id: "c2", name: "Klass 2 · Intern", description: null, security_level: 2 }
-              ]
-            },
-            response: new Response("{}")
-          })
+        : path === "/api/v1/security-classifications/spaces-below-default/"
+          ? Promise.resolve({
+              data: {
+                items: [
+                  { id: "s1", name: "Bygglov", security_classification_id: "c1" },
+                  { id: "s2", name: "Arkivet", security_classification_id: null }
+                ]
+              },
+              response: new Response("{}")
+            })
+          : Promise.resolve({
+              data: {
+                security_enabled: true,
+                default_user_security_classification_id: state.defaultLevel,
+                security_classifications: [
+                  { id: "c1", name: "Klass 1 · Öppen", description: null, security_level: 1 },
+                  { id: "c2", name: "Klass 2 · Intern", description: null, security_level: 2 }
+                ]
+              },
+              response: new Response("{}")
+            })
   }
 }));
 
@@ -226,5 +237,23 @@ describe("SecurityClassificationsPage", () => {
     expect(
       await within(dialog).findByText(/Ingen tillgänglig AI-modell klarar den här nivån/)
     ).toBeTruthy();
+  });
+
+  it("lists the shared spaces below the default level, each linked to its settings", async () => {
+    state.defaultLevel = "c2";
+    renderInApp(<SecurityClassificationsPage />);
+
+    const below = await screen.findByRole("link", { name: "Bygglov" });
+    expect(below.getAttribute("href")).toBe("/spaces/s1/settings?section=security");
+    expect(within(below.closest("li")!).getByText("Klass 1 · Öppen")).toBeTruthy();
+    const unclassified = screen.getByRole("link", { name: "Arkivet" });
+    expect(within(unclassified.closest("li")!).getByText("Ingen klassificering")).toBeTruthy();
+  });
+
+  it("lists no spaces while there is no default level", async () => {
+    renderInApp(<SecurityClassificationsPage />);
+
+    await screen.findByRole("combobox", { name: "Standardnivå för användare" });
+    expect(screen.queryByText("Delade ytor under standardnivån")).toBeNull();
   });
 });

@@ -7722,5 +7722,8 @@
   "security_level_space_below": "The space's security classification cannot be set below your own security level.",
   "security_level_move_below": "The assistant cannot be moved from your personal space to a space below your security level.",
   "security_level_no_model": "No AI model meets your security level ({level}). Contact your administrator.",
-  "security_level_impact_models": "Models that meet the level: {completion, plural, one {# completion model} other {# completion models}}, {embedding, plural, one {# embedding model} other {# embedding models}} and {transcription, plural, one {# transcription model} other {# transcription models}}."
+  "security_level_impact_models": "Models that meet the level: {completion, plural, one {# completion model} other {# completion models}}, {embedding, plural, one {# embedding model} other {# embedding models}} and {transcription, plural, one {# transcription model} other {# transcription models}}.",
+  "spaces_below_default_level": "Shared spaces below the default level",
+  "spaces_below_default_level_description": "These spaces have a lower classification than the default level, or none. The default level does not change existing spaces. Open the space to change its classification.",
+  "spaces_below_default_level_unclassified": "No classification"
 }

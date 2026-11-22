@@ -250,6 +250,41 @@ class SecurityClassificationRepoImpl(BaseRepository):
             "user_groups": row.user_groups,
         }
 
+    async def spaces_below_default_level(
+        self,
+    ) -> list[sa.Row[tuple[UUID, str, UUID | None]]]:
+        """Shared spaces whose classification is below the default user level."""
+        from eneo.database.tables.spaces_table import Spaces
+        from eneo.database.tables.tenant_table import Tenants
+
+        classification = SecurityClassificationDBModel
+        default = (
+            sa.select(classification.security_level)
+            .join(
+                Tenants,
+                Tenants.default_user_security_classification_id == classification.id,
+            )
+            .where(Tenants.id == self.user.tenant_id)
+            .scalar_subquery()
+        )
+        result = await self.session.execute(
+            sa.select(Spaces.id, Spaces.name, Spaces.security_classification_id)
+            .outerjoin(
+                classification, classification.id == Spaces.security_classification_id
+            )
+            .where(
+                Spaces.tenant_id == self.user.tenant_id,
+                # Neither a personal space nor the organisation's own.
+                Spaces.user_id.is_(None),
+                Spaces.tenant_space_id.is_not(None),
+                sa.func.coalesce(
+                    classification.security_level < default, default.is_not(None)
+                ),
+            )
+            .order_by(Spaces.name)
+        )
+        return list(result.all())
+
     async def count_level_impact(
         self, level: int | None, user_group_id: UUID | None
     ) -> dict[str, int]:

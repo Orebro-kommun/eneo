@@ -6492,6 +6492,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/security-classifications/spaces-below-default/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Spaces Below Default Level
+     * @description Shared spaces whose classification is below the default user level, or that have none. Empty when no default level is set.
+     */
+    get: operations["list_spaces_below_default_level_api_v1_security_classifications_spaces_below_default__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/security-classifications/{id}/": {
     parameters: {
       query?: never;
@@ -23432,6 +23452,18 @@ export interface components {
        */
       kind?: "text" | "choice" | "date" | "number" | "boolean" | "url";
     };
+    /** SpaceBelowDefaultLevel */
+    SpaceBelowDefaultLevel: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Security Classification Id */
+      security_classification_id: string | null;
+    };
     /** SpaceDashboard */
     SpaceDashboard: {
       /**
@@ -23611,6 +23643,11 @@ export interface components {
       default_assistant?: components["schemas"]["DefaultAssistant"] | null;
       /** Data Retention Days */
       data_retention_days?: number | null;
+    };
+    /** SpacesBelowDefaultLevelResponse */
+    SpacesBelowDefaultLevelResponse: {
+      /** Items */
+      items: components["schemas"]["SpaceBelowDefaultLevel"][];
     };
     /**
      * StartRunRequest
@@ -50685,6 +50722,35 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_spaces_below_default_level_api_v1_security_classifications_spaces_below_default__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SpacesBelowDefaultLevelResponse"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GeneralError"];
         };
       };
     };

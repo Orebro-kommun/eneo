@@ -83,6 +83,10 @@ class SecurityLevelImpactService:
         )
 
     @validate_permissions(Permission.ADMIN)
+    async def spaces_below_default_level(self):
+        return await self.repo.spaces_below_default_level()
+
+    @validate_permissions(Permission.ADMIN)
     async def preview(
         self, classification_id: UUID | None, user_group_id: UUID | None
     ) -> SecurityLevelImpact:

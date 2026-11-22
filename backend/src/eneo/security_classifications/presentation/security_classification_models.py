@@ -118,6 +118,18 @@ class DefaultUserClassificationResponse(BaseModel):
     default_user_security_classification_id: Optional[UUID]
 
 
+class SpaceBelowDefaultLevel(BaseModel):
+    id: UUID
+    name: str
+    security_classification_id: Optional[UUID]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SpacesBelowDefaultLevelResponse(BaseModel):
+    items: list[SpaceBelowDefaultLevel]
+
+
 class SecurityLevelImpactPublic(BaseModel):
     """What changes if a level is saved on a user group or as the default."""
 

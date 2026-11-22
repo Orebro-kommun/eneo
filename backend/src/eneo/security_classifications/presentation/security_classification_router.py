@@ -28,6 +28,8 @@ from eneo.security_classifications.presentation.security_classification_models i
     SecurityEnableRequest,
     SecurityEnableResponse,
     SecurityLevelImpactPublic,
+    SpaceBelowDefaultLevel,
+    SpacesBelowDefaultLevelResponse,
 )
 from eneo.server.dependencies.container import get_container
 from eneo.server.protocol import responses
@@ -163,6 +165,31 @@ async def preview_security_level_impact(
         security_classification_id, user_group_id
     )
     return SecurityLevelImpactPublic.model_validate(impact)
+
+
+@router.get(
+    "/spaces-below-default/",
+    response_model=SpacesBelowDefaultLevelResponse,
+    description=(
+        "Shared spaces whose classification is below the default user level, "
+        "or that have none. Empty when no default level is set."
+    ),
+    responses=responses.get_responses([403]),
+)
+@endpoint_access(
+    authentication=Authentication.USER,
+    authorization=Permission.ADMIN,
+    reason="Listing spaces below the default level requires the admin permission.",
+)
+async def list_spaces_below_default_level(
+    container: ContainerDep,
+) -> SpacesBelowDefaultLevelResponse:
+    spaces = (
+        await container.security_level_impact_service().spaces_below_default_level()
+    )
+    return SpacesBelowDefaultLevelResponse(
+        items=[SpaceBelowDefaultLevel.model_validate(space) for space in spaces]
+    )
 
 
 @router.get(

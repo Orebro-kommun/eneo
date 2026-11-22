@@ -1,5 +1,5 @@
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowDownToLine, ArrowUpToLine, Lock, LockOpen, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "use-intl";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { browserApi } from "@/lib/api/browser";
+import Link from "@/lib/link";
 import { unwrap } from "@/lib/api/errors";
 import { toastApiError } from "@/lib/api/toast";
 import { ClassificationDialog } from "./classification-dialog";
@@ -25,6 +26,7 @@ import {
   SECURITY_CLASSIFICATIONS_KEY,
   highestFirst,
   securityClassificationsQueryOptions,
+  spacesBelowDefaultQueryOptions,
   type SecurityClassification
 } from "./security-classifications";
 
@@ -237,6 +239,37 @@ function DefaultUserLevel({
   );
 }
 
+/** Existing shared spaces are never changed by a default level: the admin finds them here. */
+function SpacesBelowDefault({ classifications }: { classifications: SecurityClassification[] }) {
+  const t = useTranslations();
+  const { data: spaces } = useQuery(spacesBelowDefaultQueryOptions(browserApi));
+  if (!spaces?.length) return null;
+
+  return (
+    <SettingsRow
+      title={t("spaces_below_default_level")}
+      description={t("spaces_below_default_level_description")}
+    >
+      <ul className="flex flex-col gap-1 text-sm">
+        {spaces.map((space) => (
+          <li key={space.id} className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <Link
+              href={`/spaces/${space.id}/settings?section=security`}
+              className="min-w-0 break-words underline"
+            >
+              {space.name}
+            </Link>
+            <span className="text-ax-text-secondary">
+              {classifications.find((item) => item.id === space.security_classification_id)?.name ??
+                t("spaces_below_default_level_unclassified")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </SettingsRow>
+  );
+}
+
 export function SecurityClassificationsPage() {
   const t = useTranslations();
   const queryClient = useQueryClient();
@@ -281,6 +314,9 @@ export function SecurityClassificationsPage() {
             classifications={ordered}
             currentId={data.default_user_security_classification_id ?? null}
           />
+        )}
+        {data.security_enabled && data.default_user_security_classification_id && (
+          <SpacesBelowDefault classifications={ordered} />
         )}
       </SettingsGroup>
 
